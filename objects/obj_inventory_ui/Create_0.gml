@@ -1,7 +1,7 @@
 ///@description Initialize the UI
 
 // The UI has its own state; inventory data lives elsewhere.
-ui_open = false;
+inventory_open = false;
 ui_selected_slot = 0;
 
 // Grid configuration.

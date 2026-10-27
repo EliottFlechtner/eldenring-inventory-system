@@ -1,7 +1,7 @@
 /// @description Draw the inventory on the screen
 
 // Draw the hotbar
-if (!ui_open) {
+if (!inventory_open) {
     var hb = global.player_hotbar;
 
     var slot_size = 54;
@@ -383,17 +383,17 @@ if (true) { // Temp
             draw_text(
                 _detail_x,
                 _stats_y + 23,
-                "Attack: " + string(character_get_attack())
+                "Attack: " + string(global.player.get_attack())
             );
 
             draw_text(
                 _detail_x + 170,
                 _stats_y + 23,
-                "Defense: " + string(character_get_defense())
+                "Defense: " + string(global.player.get_defense())
             );
 
             // Equipped weapon
-            var _weapon_id = character_get_equipment_item_id("weapon");
+            var _weapon_id = global.player.get_equipped_id("weapon");
             var _weapon_name = "None";
 
             if (_weapon_id != "") {
@@ -405,7 +405,7 @@ if (true) { // Temp
             }
 
             // Equipped armor
-            var _armor_id = character_get_equipment_item_id("armor");
+            var _armor_id = global.player.get_equipped_id("armor");
             var _armor_name = "None";
 
             if (_armor_id != "") {
@@ -421,12 +421,18 @@ if (true) { // Temp
             draw_text(
                 _detail_x,
                 _stats_y + 48,
-                "Weapon: " + _weapon_name
+                "Health: " + string(global.player.health) + " / " + string(global.player.max_health)
             );
 
             draw_text(
                 _detail_x,
                 _stats_y + 70,
+                "Weapon: " + _weapon_name
+            );
+
+            draw_text(
+                _detail_x,
+                _stats_y + 92,
                 "Armor: " + _armor_name
             );
         }

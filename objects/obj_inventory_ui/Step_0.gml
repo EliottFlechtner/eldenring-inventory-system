@@ -1,4 +1,4 @@
-/// Handle inventory movement and actions
+///@description Handle inventory movement and actions
 
 // Message timer.
 if (ui_message_timer > 0) {
@@ -8,13 +8,13 @@ if (ui_message_timer > 0) {
 // Open/close the main inventory.
 if (keyboard_check_pressed(vk_tab)) {
     if (!ui_context_open && !ui_confirm_open) {
-        ui_open = !ui_open;
+        inventory_open = !inventory_open;
         ui_message = "";
     }
 }
 
 // Escape closes the topmost layer first.
-if (ui_open && keyboard_check_pressed(vk_escape)) {
+if (inventory_open && keyboard_check_pressed(vk_escape)) {
     if (ui_confirm_open) {
         ui_confirm_open = false;
         ui_pending_action = "";
@@ -27,16 +27,34 @@ if (ui_open && keyboard_check_pressed(vk_escape)) {
         ui_message = "";
     }
     else {
-        ui_open = false;
+        inventory_open = false;
         ui_message = "";
     }
 }
 
 // Don't process other inputs when the inventory is closed.
-if (!ui_open) {
+if (!inventory_open) {
+    // Number keys use a quick slot directly while the inventory is closed.
+    if (keyboard_check_pressed(ord("1"))) {
+        hotbar_use(global.player_hotbar, 0);
+    }
+    if (keyboard_check_pressed(ord("2"))) {
+        hotbar_use(global.player_hotbar, 1);
+    }
+    if (keyboard_check_pressed(ord("3"))) {
+        hotbar_use(global.player_hotbar, 2);
+    }
+    if (keyboard_check_pressed(ord("4"))) {
+        hotbar_use(global.player_hotbar, 3);
+    }
+
+    // A cycles the selected quick slot.
+    if (keyboard_check_pressed(ord("A"))) {
+        hotbar_cycle(global.player_hotbar, 1);
+    }
+
     exit;
 }
-
 
 // Confirmation dialog has highest priority.
 if (ui_confirm_open) {
@@ -77,7 +95,7 @@ if (ui_confirm_open) {
 }
 
 
-// Context-menu navigation.
+#region Context-menu navigation
 if (ui_context_open) {
     var _action_count = array_length(ui_actions);
 
@@ -124,31 +142,19 @@ if (ui_context_open) {
 
     exit;
 }
+#endregion
 
-
-// Normal grid navigation.
+#region Normal grid navigation
 var _selected = ui_selected_slot;
 var _column = _selected mod ui_columns;
 var _row = floor(_selected / ui_columns);
 
-if (keyboard_check_pressed(vk_left) && _column > 0) {
-    _selected--;
-}
-
-if (keyboard_check_pressed(vk_right) && _column < ui_columns - 1) {
-    _selected++;
-}
-
-if (keyboard_check_pressed(vk_up) && _row > 0) {
-    _selected -= ui_columns;
-}
-
-if (keyboard_check_pressed(vk_down) && _row < ui_rows - 1) {
-    _selected += ui_columns;
-}
-
+// Move around in the inventory.
+if (keyboard_check_pressed(vk_left) && _column > 0) _selected--;
+if (keyboard_check_pressed(vk_right) && _column < ui_columns - 1) _selected++;
+if (keyboard_check_pressed(vk_up) && _row > 0) _selected -= ui_columns;
+if (keyboard_check_pressed(vk_down) && _row < ui_rows - 1) _selected += ui_columns;
 ui_selected_slot = clamp(_selected, 0, ui_slot_count - 1);
-
 
 // Enter opens the action menu for an occupied slot.
 if (keyboard_check_pressed(vk_enter)) {
@@ -171,12 +177,12 @@ if (keyboard_check_pressed(vk_enter)) {
         ui_message_timer = 90;
     }
 }
+#endregion
 
-/// HOTBAR CONTROLS
-
+#region Hotbar controls
 // When the inventory is open, Ctrl + 1..4 assigns
 // the currently selected item to a quick slot.
-if (ui_open) {
+if (inventory_open) {
     if (keyboard_check(vk_control)) {
         var assign_slot = -1;
 
@@ -188,58 +194,17 @@ if (ui_open) {
         if (assign_slot != -1) {
 			var hovered_item_id = "";
 
-			// Match the exact layout used by your Draw GUI event.
-			var _gw = display_get_gui_width();
-			var _gh = display_get_gui_height();
+			// Use the slot under the selection cursor.
+			var _sel_slot = inventory_get_slot(
+			    global.player_inventory,
+			    ui_selected_slot
+			);
 
-			var _panel_x = (_gw - 860) * 0.5;
-			var _panel_y = (_gh - 500) * 0.5;
-
-			var _grid_x = _panel_x + 24;
-			var _grid_y = _panel_y + 76;
-
-			var _slot_size = ui_slot_size;
-			var _gap = ui_slot_gap;
-			var _columns = ui_columns;
-			var _rows = ui_rows;
-
-			// Mouse position in GUI coordinates.
-			var _mx = device_mouse_x_to_gui(0);
-			var _my = device_mouse_y_to_gui(0);
-
-			// Find the grid cell under the mouse.
-			var _rel_x = _mx - _grid_x;
-			var _rel_y = _my - _grid_y;
-
-			if (_rel_x >= 0 && _rel_y >= 0) {
-			    var _col = floor(_rel_x / (_slot_size + _gap));
-			    var _row = floor(_rel_y / (_slot_size + _gap));
-
-			    if (_col >= 0 && _col < _columns
-			    && _row >= 0 && _row < _rows) {
-
-			        var _cell_x = _col * (_slot_size + _gap);
-			        var _cell_y = _row * (_slot_size + _gap);
-
-			        // Ignore the gaps between inventory slots.
-			        if (_rel_x - _cell_x <= _slot_size
-			        && _rel_y - _cell_y <= _slot_size) {
-
-			            var _index = _row * _columns + _col;
-
-			            var _slot = inventory_get_slot(
-			                global.player_inventory,
-			                _index
-			            );
-
-			            if (is_struct(_slot)) {
-			                hovered_item_id = _slot.item_id;
-			            }
-			        }
-			    }
+			if (is_struct(_sel_slot)) {
+			    hovered_item_id = _sel_slot.item_id;
 			}
 
-			// Assign the item currently under the mouse.
+			// Assign the currently selected item.
 			if (hovered_item_id != "") {
 			    if (hotbar_assign(
 			        global.player_hotbar,
@@ -253,23 +218,4 @@ if (ui_open) {
         }
     }
 }
-else {
-    // Number keys use a quick slot directly.
-    if (keyboard_check_pressed(ord("1"))) {
-        hotbar_use(global.player_hotbar, 0);
-    }
-    if (keyboard_check_pressed(ord("2"))) {
-        hotbar_use(global.player_hotbar, 1);
-    }
-    if (keyboard_check_pressed(ord("3"))) {
-        hotbar_use(global.player_hotbar, 2);
-    }
-    if (keyboard_check_pressed(ord("4"))) {
-        hotbar_use(global.player_hotbar, 3);
-    }
-
-    // Q cycles the selected slot.
-    if (keyboard_check_pressed(ord("Q"))) {
-        hotbar_cycle(global.player_hotbar, 1);
-    }
-}
+#endregion
