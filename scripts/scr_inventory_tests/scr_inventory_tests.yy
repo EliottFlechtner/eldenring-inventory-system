@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_inventory_tests",
   "parent":{
-    "name":"Inventory System",
-    "path":"folders/Inventory System.yy",
+    "name":"Tests",
+    "path":"folders/Tests.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

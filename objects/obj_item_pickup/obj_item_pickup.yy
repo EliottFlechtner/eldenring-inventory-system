@@ -10,8 +10,8 @@
   "name":"obj_item_pickup",
   "overriddenProperties":[],
   "parent":{
-    "name":"Blank Pixel Game",
-    "path":"Blank Pixel Game.yyp",
+    "name":"Inventory System",
+    "path":"folders/Inventory System.yy",
   },
   "parentObjectId":null,
   "persistent":false,
