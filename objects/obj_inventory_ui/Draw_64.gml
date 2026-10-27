@@ -328,10 +328,7 @@ if (true) { // Temp
                     "EQUIPMENT COMPARISON"
                 );
 
-                var _difference =
-                    _comparison.new_value
-                    - _comparison.current_value;
-
+                var _difference = _comparison.new_value - _comparison.current_value;
                 var _difference_text = "";
 
                 if (_difference > 0) {
@@ -421,7 +418,7 @@ if (true) { // Temp
             draw_text(
                 _detail_x,
                 _stats_y + 48,
-                "Health: " + string(global.player.health) + " / " + string(global.player.max_health)
+                "Health: " + string(global.player.health_) + " / " + string(global.player.max_health)
             );
 
             draw_text(
@@ -509,32 +506,32 @@ if (ui_context_open) {
     }
 }
 
-// --------------------------------------------------
-// Footer controls
-// Hide while confirmation dialog is open
-// --------------------------------------------------
+//// --------------------------------------------------
+//// Footer controls
+//// Hide while confirmation dialog is open
+//// --------------------------------------------------
 
-if (!ui_confirm_open) {
-    draw_set_color(make_color_rgb(195, 190, 177));
+//if (!ui_confirm_open) {
+//    draw_set_color(make_color_rgb(195, 190, 177));
 
-    draw_text(
-        _panel_x + 24,
-        _panel_y + _panel_h - 30,
-        "ARROWS: Navigate"
-    );
+//    draw_text(
+//        _panel_x + 24,
+//        _panel_y + _panel_h - 30,
+//        "ARROWS: Navigate"
+//    );
 
-    draw_text(
-        _panel_x + 225,
-        _panel_y + _panel_h - 30,
-        "ENTER: Inspect"
-    );
+//    draw_text(
+//        _panel_x + 225,
+//        _panel_y + _panel_h - 30,
+//        "ENTER: Inspect"
+//    );
 
-    draw_text(
-        _panel_x + 430,
-        _panel_y + _panel_h - 30,
-        "TAB / ESC: Close"
-    );
-}
+//    draw_text(
+//        _panel_x + 430,
+//        _panel_y + _panel_h - 30,
+//        "TAB / ESC: Close"
+//    );
+//}
 
 // --------------------------------------------------
 // Temporary feedback messages
