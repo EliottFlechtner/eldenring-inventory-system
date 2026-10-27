@@ -15,7 +15,7 @@ function equipment_get_comparison(_item_id) {
     };
 
     if (_def.category == "weapon") {
-        var _old_weapon_id = global.player_equipment.weapon;
+        var _old_weapon_id = global.player.get_equipped_id("weapon");
         var _old_bonus = 0;
 
         if (_old_weapon_id != "") {
@@ -35,15 +35,15 @@ function equipment_get_comparison(_item_id) {
 
         _comparison.valid = true;
         _comparison.stat_name = "Attack";
-        _comparison.current_value = character_get_attack();
+        _comparison.current_value = global.player.get_attack();
         _comparison.new_value =
-            global.player_base_attack + _new_bonus;
+            global.player.base_attack + _new_bonus;
 
         return _comparison;
     }
 
     if (_def.category == "armor") {
-        var _old_armor_id = global.player_equipment.armor;
+        var _old_armor_id = global.player.get_equipped_id("armor");
         var _old_armor_bonus = 0;
 
         if (_old_armor_id != "") {
@@ -63,9 +63,9 @@ function equipment_get_comparison(_item_id) {
 
         _comparison.valid = true;
         _comparison.stat_name = "Defense";
-        _comparison.current_value = character_get_defense();
+        _comparison.current_value = global.player.get_defense();
         _comparison.new_value =
-            global.player_base_defense + _new_armor_bonus;
+            global.player.base_defense + _new_armor_bonus;
 
         return _comparison;
     }

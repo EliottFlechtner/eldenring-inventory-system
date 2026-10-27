@@ -20,6 +20,14 @@ function hotbar_assign(_hotbar, _slot, _item_id) {
     if (is_undefined(def)) return false;
     if (def.category != "consumable") return false;
 
+    // An item can only be assigned to one quick slot.
+    for (var i = 0; i < _hotbar.slot_count; i++) {
+        if (i != _slot && _hotbar.slots[i] == _item_id) {
+            return false;
+        }
+    }
+    // TODO, review what should happen when 2 stacks of same item are wanted to be assigned as multiple quickslots
+
     _hotbar.slots[_slot] = _item_id;
     return true;
 }
