@@ -17,9 +17,6 @@ global.ground_items = [];
 // Create the player's inventory with 24 fixed slots.
 global.player_inventory = inventory_create(24);
 
-// Run the automated tests.
-inventory_run_tests();
-
 // Add some starting items for later UI development.
 //inventory_fill_from_config(global.player_inventory, { template: "starter" });
 
@@ -35,7 +32,3 @@ var _random_config = {
 inventory_fill_from_config(global.player_inventory, _random_config);
 
 show_debug_message("Player inventory initialized.");
-show_debug_message(
-    "Starting flasks: "
-    + string(inventory_count_item(global.player_inventory, "flask_crimson_tears"))
-);
