@@ -22,16 +22,14 @@ function inventory_get_actions(_item_id) {
     }
 
     if (_def.category == "weapon") {
-        if (global.player_equipment.weapon == _item_id) {
-            array_push(_actions, "Unequip");
+        if (global.player.get_equipped_id("weapon") == _item_id) {
         } else {
 			array_push(_actions, "Equip");
 		}
     }
 
     if (_def.category == "armor") {
-        if (global.player_equipment.armor == _item_id) {
-            array_push(_actions, "Unequip");
+        if (global.player.get_equipped_id("armor") == _item_id) {
         } else {
 			array_push(_actions, "Equip");
 		}
@@ -68,7 +66,7 @@ function inventory_execute_action(_item_id, _action) {
             }
 
             if (_def.use_effect == "heal") {
-                if (global.player_health >= global.player_max_health) {
+                if (global.player.is_health_full()) {
                     return inventory_action_result(false, "Health is already full.");
                 }
 
@@ -76,10 +74,7 @@ function inventory_execute_action(_item_id, _action) {
                     return inventory_action_result(false, "Could not consume item.");
                 }
 
-                global.player_health = min(
-                    global.player_health + _def.use_amount,
-                    global.player_max_health
-                );
+                global.player.heal(_def.use_amount);
 
                 return inventory_action_result(true, "Health restored.");
             }
@@ -88,13 +83,13 @@ function inventory_execute_action(_item_id, _action) {
 
         case "Equip":
             if (_def.category == "weapon") {
-                global.player_equipment.weapon = _item_id;
+                global.player.equip("weapon", _item_id);
 
                 return inventory_action_result(true, "Weapon equipped.");
             }
 
             if (_def.category == "armor") {
-                global.player_equipment.armor = _item_id;
+                global.player.equip("armor", _item_id);
 
                 return inventory_action_result(true, "Armor equipped.");
             }
@@ -103,14 +98,14 @@ function inventory_execute_action(_item_id, _action) {
 			
 		case "Unequip":
 		    if (_def.category == "weapon"
-		    && global.player_equipment.weapon == _item_id) {
-		        global.player_equipment.weapon = "";
+		    && global.player.get_equipped_id("weapon") == _item_id) {
+		        global.player.unequip("weapon");
 		        return inventory_action_result(true, "Weapon unequipped.");
 		    }
 
 		    if (_def.category == "armor"
-		    && global.player_equipment.armor == _item_id) {
-		        global.player_equipment.armor = "";
+		    && global.player.get_equipped_id("armor") == _item_id) {
+		        global.player.unequip("armor");
 		        return inventory_action_result(true, "Armor unequipped.");
 		    }
 
@@ -159,13 +154,7 @@ function inventory_drop_item(_item_id, _x, _y) {
     }
 
     // Unequip it if the dropped item was equipped.
-    if (global.player_equipment.weapon == _item_id) {
-        global.player_equipment.weapon = "";
-    }
-
-    if (global.player_equipment.armor == _item_id) {
-        global.player_equipment.armor = "";
-    }
+    global.player.unequip_item(_item_id);
 
     return inventory_action_result(true, "Item dropped.");
 }
@@ -182,13 +171,5 @@ function inventory_discard_item(_item_id) {
         return inventory_action_result(false, "Could not discard item.");
     }
 
-    if (global.player_equipment.weapon == _item_id) {
-        global.player_equipment.weapon = "";
-    }
-
-    if (global.player_equipment.armor == _item_id) {
-        global.player_equipment.armor = "";
-    }
-
-    return inventory_action_result(true, "Item discarded.");
+    global.player.unequip_item(_item_id);
 }
