@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_item_database",
   "parent":{
-    "name":"Inventory System",
-    "path":"folders/Inventory System.yy",
+    "name":"Databases",
+    "path":"folders/Databases.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
