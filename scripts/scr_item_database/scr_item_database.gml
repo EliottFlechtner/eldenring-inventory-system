@@ -99,6 +99,19 @@ function item_weight_default(_category) {
 }
 
 
+/// @function item_get_weight(_item_id)
+/// @description Get an item's weight; unknown items and items without a weight count as zero.
+/// @param {String} _item_id The item id.
+/// @returns {Real} The weight.
+function item_get_weight(_item_id) {
+    var _def = item_definition_get(_item_id);
+
+    if (!is_struct(_def)) return 0;
+
+    return _def[$ "weight"] ?? 0;
+}
+
+
 /// @function item_database_build(_definitions)
 /// @description Turn a list of definitions into an id-keyed struct, filling in default weights.
 /// Duplicate ids keep the first definition and are recorded for validation.
