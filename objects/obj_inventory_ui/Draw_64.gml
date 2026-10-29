@@ -31,32 +31,41 @@ if (!inventory_open) {
 
         var _item_id = hb.slots[i];
 
+        // Slot number, small, in the corner.
+        draw_set_color(c_gray);
+        draw_text(_sx + 4, _sy + 2, string(i + 1));
+
         if (_item_id != "") {
             var _def = item_definition_get(_item_id);
 
             if (!is_undefined(_def)) {
-                // Placeholder icon until real item sprites are added.
-                draw_set_color(c_white);
-                draw_text(_sx + 6, _sy + 6, string(i + 1));
-                draw_text(_sx + 6, _sy + 25, _def.name);
+                // Placeholder icon (first letter), same as the inventory slots.
+                draw_set_halign(fa_center);
+                draw_set_valign(fa_middle);
+                draw_set_color(make_color_rgb(224, 207, 165));
+                draw_text(_sx + ui_slot_size * 0.5, _sy + ui_slot_size * 0.43, string_upper(string_copy(_def.name, 1, 1)));
 
-                var _quantity = inventory_count_item(
-                    global.player_inventory,
-                    _item_id
-                );
+                // Total owned count, bottom-right.
+                var _quantity = inventory_count_item(global.player_inventory, _item_id);
+                draw_set_color(_quantity > 0 ? c_white : make_color_rgb(220, 130, 115));
+                draw_set_halign(fa_right);
+                draw_set_valign(fa_bottom);
+                draw_text(_sx + ui_slot_size - 5, _sy + ui_slot_size - 4, "x" + string(_quantity));
+                draw_set_halign(fa_left);
+                draw_set_valign(fa_top);
 
-                draw_text(
-                    _sx + ui_slot_size - 16,
-                    _sy + ui_slot_size - 18,
-                    string(_quantity)
-                );
+                // Full name of the selected quick slot, above the bar.
+                if (i == hb.selected_slot) {
+                    draw_set_color(make_color_rgb(239, 203, 119));
+                    draw_set_halign(fa_center);
+                    draw_set_valign(fa_bottom);
+                    draw_text(display_get_gui_width() * 0.5, _slot_y - 6, _def.name);
+                    draw_set_halign(fa_left);
+                    draw_set_valign(fa_top);
+                }
             }
-        } else {
-            draw_set_color(c_gray);
-            draw_text(_sx + 8, _sy + 18, string(i + 1));
         }
     }
-
     draw_set_alpha(1);
     draw_set_color(c_white);
     exit;
@@ -208,6 +217,19 @@ for (var i = 0; i < ui_slot_count; i++) {
                 draw_circle(_sx + _slot_size - 8, _sy + 8, 4, false);
                 draw_set_color(make_color_rgb(15, 16, 18));
                 draw_circle(_sx + _slot_size - 8, _sy + 8, 4, true);
+            }
+
+            // Quick slot marker: a blue dot with the assigned slot number, top-left.
+            var _quick_index = array_get_index(global.player_hotbar.slots, _slot.item_id);
+            if (_quick_index != -1) {
+                draw_set_color(make_color_rgb(95, 160, 235));
+                draw_circle(_sx + 9, _sy + 9, 7, false);
+                draw_set_color(make_color_rgb(15, 16, 18));
+                draw_set_halign(fa_center);
+                draw_set_valign(fa_middle);
+                draw_text(_sx + 9, _sy + 9, string(_quick_index + 1));
+                draw_set_halign(fa_left);
+                draw_set_valign(fa_top);
             }
 
             // Stack quantity
@@ -363,97 +385,6 @@ if (is_struct(_selected)) {
             );
         }
 
-        // Show the resulting character stats and equipped gear.
-
-        var _stats_y = _grid_y + 292;
-
-        draw_set_color(make_color_rgb(239, 203, 119));
-        draw_text(
-            _detail_x,
-            _stats_y,
-            "CHARACTER"
-        );
-
-        draw_set_color(c_white);
-
-        draw_text(
-            _detail_x,
-            _stats_y + 23,
-            "Attack: " + string(global.player.get_attack())
-        );
-
-        draw_text(
-            _detail_x + 170,
-            _stats_y + 23,
-            "Defense: " + string(global.player.get_defense())
-        );
-
-        // The helper returns undefined when no item is equipped.
-        var _weapon_def = global.player.get_equipped_definition("weapon");
-        var _weapon_name = is_struct(_weapon_def) ? _weapon_def.name : "None";
-        var _armor_def = global.player.get_equipped_definition("armor");
-        var _armor_name = is_struct(_armor_def) ? _armor_def.name : "None";
-
-        draw_set_color(make_color_rgb(191, 188, 180));
-
-        draw_text(
-            _detail_x,
-            _stats_y + 48,
-            "Health: " + string(global.player.health_) + " / " + string(global.player.max_health)
-        );
-
-        draw_text(
-            _detail_x + 170,
-            _stats_y + 48,
-            "FP: " + string(global.player.fp) + " / " + string(global.player.max_fp)
-        );
-
-        draw_text(
-            _detail_x,
-            _stats_y + 70,
-            "Runes: " + string(global.player.runes)
-        );
-
-        draw_text(
-            _detail_x,
-            _stats_y + 92,
-            "Weapon: " + _weapon_name
-        );
-
-        draw_text(
-            _detail_x,
-            _stats_y + 114,
-            "Armor: " + _armor_name
-        );
-
-        var _shield_def = global.player.get_equipped_definition("shield");
-        draw_text(
-            _detail_x,
-            _stats_y + 136,
-            "Shield: " + (is_struct(_shield_def) ? _shield_def.name : "None")
-        );
-
-        draw_text(
-            _detail_x,
-            _stats_y + 158,
-            "Equip Load: " + string(global.player.get_equip_load()) + " / " + string(global.player.max_equip_load)
-        );
-
-        draw_text(
-            _detail_x + 170,
-            _stats_y + 70,
-            "Talismans (" + string(array_length(global.player.talismans)) + " / " + string(global.player.max_talismans) + "):"
-        );
-
-        for (var _t = 0; _t < global.player.max_talismans; _t++) {
-            var _talisman_name = "-";
-
-            if (_t < array_length(global.player.talismans)) {
-                _talisman_name = item_definition_get(global.player.talismans[_t]).name;
-            }
-
-            draw_text(_detail_x + 186, _stats_y + 92 + _t * 22, _talisman_name);
-        }
     }
 }
 else {
@@ -461,6 +392,100 @@ else {
 
     draw_text(_detail_x, _grid_y, "Empty slot");
     draw_text(_detail_x, _grid_y + 32, "No item is stored here.");
+}
+
+#region Character stats
+// Always visible, whether or not the selected slot holds an item.
+// Show the resulting character stats and equipped gear.
+
+var _stats_y = _grid_y + 292;
+
+draw_set_color(make_color_rgb(239, 203, 119));
+draw_text(
+    _detail_x,
+    _stats_y,
+    "CHARACTER"
+);
+
+draw_set_color(c_white);
+
+draw_text(
+    _detail_x,
+    _stats_y + 23,
+    "Attack: " + string(global.player.get_attack())
+);
+
+draw_text(
+    _detail_x + 170,
+    _stats_y + 23,
+    "Defense: " + string(global.player.get_defense())
+);
+
+// The helper returns undefined when no item is equipped.
+var _weapon_def = global.player.get_equipped_definition("weapon");
+var _weapon_name = is_struct(_weapon_def) ? _weapon_def.name : "None";
+var _armor_def = global.player.get_equipped_definition("armor");
+var _armor_name = is_struct(_armor_def) ? _armor_def.name : "None";
+
+draw_set_color(make_color_rgb(191, 188, 180));
+
+draw_text(
+    _detail_x,
+    _stats_y + 48,
+    "Health: " + string(global.player.health_) + " / " + string(global.player.max_health)
+);
+
+draw_text(
+    _detail_x + 170,
+    _stats_y + 48,
+    "FP: " + string(global.player.fp) + " / " + string(global.player.max_fp)
+);
+
+draw_text(
+    _detail_x,
+    _stats_y + 70,
+    "Runes: " + string(global.player.runes)
+);
+
+draw_text(
+    _detail_x,
+    _stats_y + 92,
+    "Weapon: " + _weapon_name
+);
+
+draw_text(
+    _detail_x,
+    _stats_y + 114,
+    "Armor: " + _armor_name
+);
+
+var _shield_def = global.player.get_equipped_definition("shield");
+draw_text(
+    _detail_x,
+    _stats_y + 136,
+    "Shield: " + (is_struct(_shield_def) ? _shield_def.name : "None")
+);
+
+draw_text(
+    _detail_x,
+    _stats_y + 158,
+    "Equip Load: " + string(global.player.get_equip_load()) + " / " + string(global.player.max_equip_load)
+);
+
+draw_text(
+    _detail_x + 170,
+    _stats_y + 70,
+    "Talismans (" + string(array_length(global.player.talismans)) + " / " + string(global.player.max_talismans) + "):"
+);
+
+for (var _t = 0; _t < global.player.max_talismans; _t++) {
+    var _talisman_name = "-";
+
+    if (_t < array_length(global.player.talismans)) {
+        _talisman_name = item_definition_get(global.player.talismans[_t]).name;
+    }
+
+    draw_text(_detail_x + 186, _stats_y + 92 + _t * 22, _talisman_name);
 }
 #endregion
 

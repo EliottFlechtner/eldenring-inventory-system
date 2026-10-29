@@ -37,7 +37,7 @@ inventory_fill_from_config(global.player_inventory, { template: "debug", clear: 
 item_validation_run();
 
 // Uncomment to restore the last save (F5 saves, F9 loads in the inventory).
-//save_read();
+save_read();
 
 // Set to true to log the inventory self-tests at startup.
 if (false) inventory_run_tests();

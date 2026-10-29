@@ -35,6 +35,9 @@ function item_handlers_init() {
 		},
 		function(_def) { // No point using more than it takes to fill health.
 		    return ceil((global.player.max_health - global.player.health_) / _def.use_amount);
+		},
+		function(_def) { // Grayed out at full health.
+		    return global.player.is_health_full() ? "Health is already full." : "";
 		}
 	);
 
@@ -47,6 +50,9 @@ function item_handlers_init() {
 	    },
 		function(_def) { // No point using more than it takes to fill FP.
 	        return ceil((global.player.max_fp - global.player.fp) / _def.use_amount);
+	    },
+		function(_def) { // Grayed out at full FP.
+	        return global.player.is_fp_full() ? "FP is already full." : "";
 	    }
 	);
 
@@ -73,6 +79,9 @@ function item_handlers_init() {
 	            if (is_undefined(item_effect_get(_def))) {
 	                return "Using this item is not supported yet.";
 	            }
+
+	            var _effect = item_effect_get(_def);
+	            if (is_callable(_effect.unavailable)) return _effect.unavailable(_def);
 
 	            return "";
 	        },
@@ -125,8 +134,10 @@ function item_category_get_handler(_category) {
 /// @param {String} _effect The use_effect name used in item definitions.
 /// @param {Function} _fn function(def, quantity) applying the effect.
 /// @param {Function} [_max_uses] function(def) returning how many are useful at once; omit for no cap.
-function item_effect_register(_effect, _fn, _max_uses = undefined) {
-    global.item_effect_handlers[$ _effect] = { apply: _fn, max_uses: _max_uses };
+/// @param {Function} [_unavailable] function(def) returning a reason string when the effect would do nothing right now
+/// (grays Use out); return "" when usable.
+function item_effect_register(_effect, _fn, _max_uses = undefined, _unavailable = undefined) {
+    global.item_effect_handlers[$ _effect] = { apply: _fn, max_uses: _max_uses, unavailable: _unavailable };
 }
 
 /// @function item_effect_get(_def)
