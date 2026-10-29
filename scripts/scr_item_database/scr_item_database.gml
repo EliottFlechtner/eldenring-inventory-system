@@ -1,5 +1,9 @@
 /// scr_item_database
+/// @function item_database_create()
+/// @description Build the game's item definitions as a struct keyed by item id.
+/// @returns {Struct.ItemDatabase} The item id to item definition mapping.
 function item_database_create() {
+    #region Item definitions
     return {
         flask_crimson_tears: { id: "flask_crimson_tears", name: "Flask of Crimson Tears", category: "consumable", description: "Restores HP.", stackable: true, max_stack: 14, icon: -1, use_effect: "heal", use_amount: 250 },
         flask_cerulean_tears: { id: "flask_cerulean_tears", name: "Flask of Cerulean Tears", category: "consumable", description: "Restores FP.", stackable: true, max_stack: 14, icon: -1, use_effect: "restore_fp", use_amount: 100 },
@@ -55,20 +59,24 @@ function item_database_create() {
         lone_wolf_ashes: { id: "lone_wolf_ashes", name: "Lone Wolf Ashes", category: "spirit_ash", description: "Summons spectral wolves.", stackable: false, max_stack: 1, icon: -1 },
         mimic_tear_ashes: { id: "mimic_tear_ashes", name: "Mimic Tear Ashes", category: "spirit_ash", description: "Summons a copy of yourself.", stackable: false, max_stack: 1, icon: -1 },
     };
+    #endregion
 }
 
 
-/// item_database_init()
-/// Call once at game start: creates global.item_db and fill templates.
+/// @function item_database_init()
+/// @description Initialize the global item database and inventory templates.
+/// @returns {undefined} No value is returned; global.item_db and global.inventory_templates are assigned.
 function item_database_init() {
     global.item_db = item_database_create();
     global.inventory_templates = inventory_templates_create();
 }
 
 
-/// inventory_templates_create()
-/// Each entry: [item_id, quantity]
+/// @function inventory_templates_create()
+/// @description Create the named starting-inventory templates.
+/// @returns {Struct.InventoryTemplates} A struct whose template values contain [item_id, quantity] entries.
 function inventory_templates_create() {
+    #region Inventory templates
     return {
         starter: [
             ["flask_crimson_tears", 5], ["rowa_fruit", 20], ["longsword", 1], ["knight_helm", 1]
@@ -89,10 +97,14 @@ function inventory_templates_create() {
             ["arteria_leaf", 10], ["bone_dart", 20], ["fire_pot", 5], ["throwing_dagger", 15]
         ]
     };
+    #endregion
 }
 
 
-/// item_definition_get(_item_id)
+/// @function item_definition_get(_item_id)
+/// @description Look up an item definition by its id in the initialized global database.
+/// @param {String} _item_id The item id to look up.
+/// @returns {Struct.ItemDefinition|undefined} The definition if found, or undefined for invalid or unknown ids.
 function item_definition_get(_item_id) {
     if (!is_string(_item_id)) {
         return undefined;
@@ -103,4 +115,28 @@ function item_definition_get(_item_id) {
     }
 
     return variable_struct_get(global.item_db, _item_id);
+}
+
+
+/// @function item_database_get_ids(_categories, _exclude)
+/// @description Get item ids, optionally filtered by category and excluded ids.
+/// @param {String|Array<String>|undefined} _categories One category, a list of categories, or undefined for all categories.
+/// @param {Array<String>|undefined} _exclude Item ids to omit, or undefined to omit none.
+/// @returns {Array<String>} Matching item ids from the global item database.
+function item_database_get_ids(_categories = undefined, _exclude = undefined) {
+    if (is_string(_categories)) _categories = [_categories];
+
+    var _keys = variable_struct_get_names(global.item_db);
+    var _ids = [];
+
+    for (var i = 0; i < array_length(_keys); i++) {
+        var _def = variable_struct_get(global.item_db, _keys[i]);
+
+        if (is_array(_categories) && !array_contains(_categories, _def.category)) continue;
+        if (is_array(_exclude) && array_contains(_exclude, _keys[i])) continue;
+
+        array_push(_ids, _keys[i]);
+    }
+
+    return _ids;
 }

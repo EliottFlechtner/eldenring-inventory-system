@@ -1,0 +1,7 @@
+{
+    "files.exclude": {
+        "**/*.{yy,yyp,resource_order,png,json,gitattributes,gitignore}": true,
+        "options/": true,
+        "datafiles/": true
+    }
+}

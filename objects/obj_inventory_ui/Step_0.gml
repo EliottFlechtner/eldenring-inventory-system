@@ -1,62 +1,59 @@
-///@description Handle inventory movement and actions
+/// @description Handle inventory navigation, hotbar input, and item actions.
 
-// Message timer.
-if (ui_message_timer > 0) {
-    ui_message_timer--;
-}
+inventory_ui_message_tick(id);
 
+#region Inventory visibility
 // Open/close the main inventory.
 if (keyboard_check_pressed(vk_tab)) {
-    if (!ui_context_open && !ui_confirm_open) {
+    if (!ui_actions_menu_open && !ui_confirm_open) {
         inventory_open = !inventory_open;
-        ui_message = "";
+        inventory_ui_message_clear(id);
     }
 }
+#endregion
 
+#region Cancel key press handling
 // Escape closes the topmost layer first.
 if (inventory_open && keyboard_check_pressed(vk_escape)) {
     if (ui_confirm_open) {
         ui_confirm_open = false;
         ui_pending_action = "";
-        ui_message = "Cancelled.";
-        ui_message_timer = 90;
+        inventory_ui_message_show(
+            id,
+            "Cancelled.",
+            ui_message_duration_brief
+        );
     }
-    else if (ui_context_open) {
-        ui_context_open = false;
+    else if (ui_actions_menu_open) {
+        ui_actions_menu_open = false;
         ui_actions = [];
-        ui_message = "";
+        inventory_ui_message_clear(id);
     }
     else {
         inventory_open = false;
-        ui_message = "";
+        inventory_ui_message_clear(id);
     }
 }
+#endregion
 
+#region Closed-inventory hotbar input
 // Don't process other inputs when the inventory is closed.
 if (!inventory_open) {
     // Number keys use a quick slot directly while the inventory is closed.
-    if (keyboard_check_pressed(ord("1"))) {
-        hotbar_use(global.player_hotbar, 0);
-    }
-    if (keyboard_check_pressed(ord("2"))) {
-        hotbar_use(global.player_hotbar, 1);
-    }
-    if (keyboard_check_pressed(ord("3"))) {
-        hotbar_use(global.player_hotbar, 2);
-    }
-    if (keyboard_check_pressed(ord("4"))) {
-        hotbar_use(global.player_hotbar, 3);
-    }
+    if (keyboard_check_pressed(ord("1"))) hotbar_use(global.player_hotbar, 0);
+    if (keyboard_check_pressed(ord("2"))) hotbar_use(global.player_hotbar, 1);
+    if (keyboard_check_pressed(ord("3"))) hotbar_use(global.player_hotbar, 2);
+    if (keyboard_check_pressed(ord("4"))) hotbar_use(global.player_hotbar, 3);
 
-    // A cycles the selected quick slot.
-    if (keyboard_check_pressed(ord("A"))) {
-        hotbar_cycle(global.player_hotbar, 1);
-    }
-
+    // 'A' cycles the selected quick slot.
+    if (keyboard_check_pressed(ord("A"))) hotbar_cycle(global.player_hotbar, 1);
     exit;
 }
+#endregion
 
+#region Confirmation sub-menu navigation
 // Confirmation dialog has highest priority.
+// Currently, confirmation can only be for dropping/discarding
 if (ui_confirm_open) {
     if (keyboard_check_pressed(vk_enter)) {
         var _result;
@@ -82,21 +79,25 @@ if (ui_confirm_open) {
             );
         }
 
-        ui_message = _result.message;
-        ui_message_timer = 120;
+        inventory_ui_message_show(
+            id,
+            _result.message,
+            ui_message_duration_standard
+        );
 
+        // Reset the confirmation state so the next action starts cleanly.
         ui_confirm_open = false;
         ui_pending_action = "";
-        ui_context_open = false;
+        ui_actions_menu_open = false;
         ui_actions = [];
     }
 
     exit;
 }
+#endregion
 
-
-#region Context-menu navigation
-if (ui_context_open) {
+#region Action-menu navigation
+if (ui_actions_menu_open) {
     var _action_count = array_length(ui_actions);
 
     if (_action_count > 0) {
@@ -130,11 +131,14 @@ if (ui_context_open) {
                     _action
                 );
 
-                ui_message = _result.message;
-                ui_message_timer = 120;
+                inventory_ui_message_show(
+                    id,
+                    _result.message,
+                    ui_message_duration_standard
+                );
 
                 // Close the context menu after executing.
-                ui_context_open = false;
+                ui_actions_menu_open = false;
                 ui_actions = [];
             }
         }
@@ -169,12 +173,15 @@ if (keyboard_check_pressed(vk_enter)) {
         ui_action_selected = 0;
 
         if (array_length(ui_actions) > 0) {
-            ui_context_open = true;
+            ui_actions_menu_open = true;
         }
     }
     else {
-        ui_message = "Empty slot.";
-        ui_message_timer = 90;
+        inventory_ui_message_show(
+            id,
+            "Empty slot.",
+            ui_message_duration_brief
+        );
     }
 }
 #endregion
@@ -192,29 +199,22 @@ if (inventory_open) {
         if (keyboard_check_pressed(ord("4"))) assign_slot = 3;
 
         if (assign_slot != -1) {
-			var hovered_item_id = "";
+            var _selected_slot = inventory_get_slot(
+                global.player_inventory,
+                ui_selected_slot
+            );
 
-			// Use the slot under the selection cursor.
-			var _sel_slot = inventory_get_slot(
-			    global.player_inventory,
-			    ui_selected_slot
-			);
-
-			if (is_struct(_sel_slot)) {
-			    hovered_item_id = _sel_slot.item_id;
-			}
-
-			// Assign the currently selected item.
-			if (hovered_item_id != "") {
-			    if (hotbar_assign(
-			        global.player_hotbar,
-			        assign_slot,
-			        hovered_item_id
-			    )) {
-			        ui_message = "Quick slot assigned.";
-			        ui_message_timer = 90;
-			    }
-			}
+            if (is_struct(_selected_slot) && hotbar_assign(
+                global.player_hotbar,
+                assign_slot,
+                _selected_slot.item_id
+            )) {
+                inventory_ui_message_show(
+                    id,
+                    "Quick slot assigned.",
+                    ui_message_duration_brief
+                );
+            }
         }
     }
 }

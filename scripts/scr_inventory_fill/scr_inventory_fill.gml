@@ -1,7 +1,10 @@
 /// scr_inventory_fill
 /// Helpers to fill an inventory (see scr_inventory_core) from global.item_db.
 
-// Remove every item from the inventory.
+/// @function inventory_clear(_inventory)
+/// @description Empty every slot in an inventory.
+/// @param {Struct.Inventory} _inventory The inventory to clear.
+/// @returns {undefined} No value is returned; the inventory is updated in place.
 function inventory_clear(_inventory) {
     if (!is_struct(_inventory)) return;
 
@@ -10,39 +13,12 @@ function inventory_clear(_inventory) {
     }
 }
 
-
-// Return the ids of items in global.item_db, optionally filtered.
-// _categories: undefined, a category string, or an array of category strings.
-// _exclude: undefined or an array of item ids to leave out.
-function item_database_get_ids(_categories = undefined, _exclude = undefined) {
-    if (is_string(_categories)) _categories = [_categories];
-
-    var _keys = variable_struct_get_names(global.item_db);
-    var _ids = [];
-
-    for (var i = 0; i < array_length(_keys); i++) {
-        var _def = variable_struct_get(global.item_db, _keys[i]);
-
-        if (is_array(_categories) && !array_contains(_categories, _def.category)) continue;
-        if (is_array(_exclude) && array_contains(_exclude, _keys[i])) continue;
-
-        array_push(_ids, _keys[i]);
-    }
-
-    return _ids;
-}
-
-
-// Randomly add items until the inventory is full or the limit is reached.
-// _config (all fields optional):
-//   categories: string or array of categories to draw from (default: all)
-//   exclude:    array of item ids never to add
-//   min_qty / max_qty: quantity range for stackable items (default 1 / max_stack)
-//   unique:     true to add each item id at most once (default false)
-//   max_items:  number of random picks to make (default: until full)
-//   clear:      true to empty the inventory first (default false)
-//   seed:       if set, makes the result reproducible (uses random_set_seed)
-// Returns the total quantity added.
+#region Random fill
+/// @function inventory_fill_random(_inventory, _config)
+/// @description Add randomly selected database items until full or the configured pick limit is reached.
+/// @param {Struct.Inventory} _inventory The inventory to fill.
+/// @param {Struct} _config Optional categories, excluded ids, stack quantity bounds, uniqueness, pick limit, clear flag, and random seed.
+/// @returns {Real} The total quantity successfully added.
 function inventory_fill_random(_inventory, _config = {}) {
     if (!is_struct(_inventory)) return 0;
     if (!is_struct(_config)) _config = {};
@@ -55,6 +31,7 @@ function inventory_fill_random(_inventory, _config = {}) {
     var _max_items = _config[$ "max_items"] ?? infinity;
 
     if (_config[$ "clear"] ?? false) inventory_clear(_inventory);
+    // Seeding the built-in RNG also affects other random calls in the game.
     if (!is_undefined(_config[$ "seed"])) random_set_seed(_config.seed);
 
     var _pool = item_database_get_ids(_categories, _exclude);
@@ -87,10 +64,16 @@ function inventory_fill_random(_inventory, _config = {}) {
 
     return _total;
 }
+#endregion
 
 
-// Fill from an explicit list of entries: [{ id: "arrow", qty: 40 }, ["potion", 3], ...].
-// Unknown ids are skipped. Returns the total quantity added.
+#region Explicit entries and templates
+/// @function inventory_fill_from_list(_inventory, _entries, _clear)
+/// @description Add item quantities from struct or array entries; unknown item ids add nothing.
+/// @param {Struct.Inventory} _inventory The inventory to fill.
+/// @param {Array<Struct|Array>} _entries Entries containing an item id and optional quantity.
+/// @param {Boolean} _clear Whether to empty the inventory before adding entries.
+/// @returns {Real} The total quantity successfully added.
 function inventory_fill_from_list(_inventory, _entries, _clear = false) {
     if (!is_struct(_inventory) || !is_array(_entries)) return 0;
     if (_clear) inventory_clear(_inventory);
@@ -118,11 +101,11 @@ function inventory_fill_from_list(_inventory, _entries, _clear = false) {
 }
 
 
-// Fill from a config struct. Either:
-//   { entries: [...], clear: bool }          -> exact list (see inventory_fill_from_list)
-//   { template: "samurai", clear: bool }     -> named entry in global.inventory_templates
-//   { categories: ..., max_items: ... }      -> random fill (see inventory_fill_random)
-// Returns the total quantity added.
+/// @function inventory_fill_from_config(_inventory, _config)
+/// @description Fill an inventory from explicit entries, a named template, or random-fill options.
+/// @param {Struct.Inventory} _inventory The inventory to fill.
+/// @param {Struct} _config Configuration containing entries, a template name, or random-fill options.
+/// @returns {Real} The total quantity successfully added; zero for an unknown template.
 function inventory_fill_from_config(_inventory, _config) {
     if (!is_struct(_config)) return inventory_fill_random(_inventory);
 
@@ -144,3 +127,4 @@ function inventory_fill_from_config(_inventory, _config) {
 
     return inventory_fill_random(_inventory, _config);
 }
+#endregion

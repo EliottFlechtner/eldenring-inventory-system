@@ -1,4 +1,6 @@
-///@description Initialize game state and player inventory
+/// @description Initialize the item database, player state, hotbar, and starting inventory.
+// Set game speed
+game_set_speed(60, gamespeed_fps);
 
 // Initialize shared item definitions.
 // Also creates global.inventory_templates.
@@ -21,12 +23,12 @@ global.player_inventory = inventory_create(24);
 //inventory_fill_from_config(global.player_inventory, { template: "starter" });
 
 var _random_config = {
-    categories: ["weapon", "armor", "consumable"], // omit for all categories
-    exclude: ["lords_rune"],                       // item ids never added
+    //categories: ["weapon", "armor", "consumable"], // omit for all categories
+    //exclude: ["lords_rune"],                       // item ids never added
     min_qty: 1,                                    // stackable quantity range
-    max_qty: 5,
+    //max_qty: 5,
     unique: true,                                  // each item id at most once
-    max_items: 10,                                 // omit to fill until full
+    //max_items: global.player_inventory.capacity,   // omit to fill until full
     clear: true,                                   // empty the inventory first
 };
 inventory_fill_from_config(global.player_inventory, _random_config);

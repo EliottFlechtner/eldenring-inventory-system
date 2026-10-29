@@ -1,5 +1,10 @@
 /// scr_inventory_actions
 
+/// @function inventory_action_result(_ok, _message)
+/// @description Create a standardized result for an inventory action.
+/// @param {Boolean} _ok Whether the action succeeded.
+/// @param {String} _message A user-facing explanation of the result.
+/// @returns {Struct.ActionResult} A result containing the success flag and message.
 function inventory_action_result(_ok, _message) {
     return {
         ok: _ok,
@@ -8,7 +13,11 @@ function inventory_action_result(_ok, _message) {
 }
 
 
-/// Return the available actions for an item.
+#region Available actions
+/// @function inventory_get_actions(_item_id)
+/// @description Get the actions currently available for an item.
+/// @param {String} _item_id The item id to inspect.
+/// @returns {Array<String>} The available action names, or an empty array if the item is unknown.
 function inventory_get_actions(_item_id) {
     var _actions = [];
     var _def = item_definition_get(_item_id);
@@ -21,18 +30,11 @@ function inventory_get_actions(_item_id) {
         array_push(_actions, "Use");
     }
 
-    if (_def.category == "weapon") {
-        if (global.player.get_equipped_id("weapon") == _item_id) {
-        } else {
-			array_push(_actions, "Equip");
-		}
-    }
+    if (global.player.is_equipment_slot(_def.category)) {
+        var _equipment_slot = _def.category;
+        var _equipped_id = global.player.get_equipped_id(_equipment_slot);
 
-    if (_def.category == "armor") {
-        if (global.player.get_equipped_id("armor") == _item_id) {
-        } else {
-			array_push(_actions, "Equip");
-		}
+        array_push(_actions, _equipped_id == _item_id ? "Unequip" : "Equip");
     }
 
     array_push(_actions, "Drop");
@@ -40,9 +42,15 @@ function inventory_get_actions(_item_id) {
 
     return _actions;
 }
+#endregion
 
 
-/// Execute a non-destructive action.
+#region Action execution
+/// @function inventory_execute_action(_item_id, _action)
+/// @description Execute an item action that does not drop or discard the item.
+/// @param {String} _item_id The item id to act on.
+/// @param {String} _action The action name, such as Use, Equip, or Unequip.
+/// @returns {Struct.ActionResult} Whether the action succeeded and a user-facing result message.
 function inventory_execute_action(_item_id, _action) {
     var _inv = global.player_inventory;
     var _def = item_definition_get(_item_id);
@@ -82,41 +90,42 @@ function inventory_execute_action(_item_id, _action) {
             return inventory_action_result(false, "Unknown item effect.");
 
         case "Equip":
-            if (_def.category == "weapon") {
-                global.player.equip("weapon", _item_id);
-
-                return inventory_action_result(true, "Weapon equipped.");
+        case "Unequip":
+            if (!global.player.is_equipment_slot(_def.category)) {
+                var _error_message = _action == "Equip"
+                    ? "This item cannot be equipped."
+                    : "Item is not equipped.";
+                return inventory_action_result(false, _error_message);
             }
 
-            if (_def.category == "armor") {
-                global.player.equip("armor", _item_id);
+            var _equipment_slot = _def.category;
+            var _equipment_name = _equipment_slot == "weapon" ? "Weapon" : "Armor";
 
-                return inventory_action_result(true, "Armor equipped.");
+            if (_action == "Equip") {
+                global.player.equip(_equipment_slot, _item_id);
+                return inventory_action_result(true, _equipment_name + " equipped.");
             }
 
-            return inventory_action_result(false, "This item cannot be equipped.");
-			
-		case "Unequip":
-		    if (_def.category == "weapon"
-		    && global.player.get_equipped_id("weapon") == _item_id) {
-		        global.player.unequip("weapon");
-		        return inventory_action_result(true, "Weapon unequipped.");
-		    }
+            if (global.player.get_equipped_id(_equipment_slot) != _item_id) {
+                return inventory_action_result(false, "Item is not equipped.");
+            }
 
-		    if (_def.category == "armor"
-		    && global.player.get_equipped_id("armor") == _item_id) {
-		        global.player.unequip("armor");
-		        return inventory_action_result(true, "Armor unequipped.");
-		    }
-
-		    return inventory_action_result(false, "Item is not equipped.");
+            global.player.unequip(_equipment_slot);
+            return inventory_action_result(true, _equipment_name + " unequipped.");
     }
 
     return inventory_action_result(false, "Unknown action.");
 }
+#endregion
 
 
-/// Remove one item and place it in the temporary ground-item list.
+#region Dropping and discarding
+/// @function inventory_drop_item(_item_id, _x, _y)
+/// @description Remove one item from inventory and create its pickup in the world.
+/// @param {String} _item_id The item id to drop.
+/// @param {Real} _x The world x-coordinate for the pickup.
+/// @param {Real} _y The world y-coordinate for the pickup.
+/// @returns {Struct.ActionResult} Whether the drop succeeded and a user-facing result message.
 function inventory_drop_item(_item_id, _x, _y) {
     var _inv = global.player_inventory;
 
@@ -159,7 +168,10 @@ function inventory_drop_item(_item_id, _x, _y) {
     return inventory_action_result(true, "Item dropped.");
 }
 
-/// Permanently remove one item.
+/// @function inventory_discard_item(_item_id)
+/// @description Permanently remove one item from inventory.
+/// @param {String} _item_id The item id to discard.
+/// @returns {Struct.ActionResult} Whether discarding succeeded and a user-facing result message.
 function inventory_discard_item(_item_id) {
     var _inv = global.player_inventory;
 
@@ -172,4 +184,6 @@ function inventory_discard_item(_item_id) {
     }
 
     global.player.unequip_item(_item_id);
+    return inventory_action_result(true, "Item discarded.");
 }
+#endregion

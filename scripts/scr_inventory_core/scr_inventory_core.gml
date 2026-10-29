@@ -1,6 +1,9 @@
 /// scr_inventory_core
 
-// Create a new empty inventory.
+/// @function inventory_create(_capacity)
+/// @description Create an empty inventory with a validated slot capacity.
+/// @param {Real} _capacity The requested number of slots; invalid values default to 24 and values below one are raised to one.
+/// @returns {Struct.Inventory} An inventory containing its capacity and empty slot array.
 function inventory_create(_capacity) {
     if (!is_real(_capacity)) {
         _capacity = 24;
@@ -19,7 +22,12 @@ function inventory_create(_capacity) {
 }
 
 
-// Return the number of valid items of this type.
+#region Inventory queries
+/// @function inventory_count_item(_inventory, _item_id)
+/// @description Count all quantities of an item across inventory slots.
+/// @param {Struct.Inventory} _inventory The inventory to search.
+/// @param {String} _item_id The item id to count.
+/// @returns {Real} The total quantity found, or zero for an invalid inventory.
 function inventory_count_item(_inventory, _item_id) {
     if (!is_struct(_inventory)) return 0;
 
@@ -37,8 +45,11 @@ function inventory_count_item(_inventory, _item_id) {
 }
 
 
-// Find the first occupied slot containing this item.
-// Returns -1 if it is not present.
+/// @function inventory_find_slot(_inventory, _item_id)
+/// @description Find the first occupied slot containing an item.
+/// @param {Struct.Inventory} _inventory The inventory to search.
+/// @param {String} _item_id The item id to find.
+/// @returns {Real} The zero-based slot index, or -1 if invalid or not found.
 function inventory_find_slot(_inventory, _item_id) {
     if (!is_struct(_inventory)) return -1;
 
@@ -54,8 +65,10 @@ function inventory_find_slot(_inventory, _item_id) {
 }
 
 
-// Find the first empty slot.
-// Returns -1 if the inventory is full.
+/// @function inventory_find_empty_slot(_inventory)
+/// @description Find the first unoccupied slot in an inventory.
+/// @param {Struct.Inventory} _inventory The inventory to search.
+/// @returns {Real} The zero-based slot index, or -1 if invalid or full.
 function inventory_find_empty_slot(_inventory) {
     if (!is_struct(_inventory)) return -1;
 
@@ -67,10 +80,16 @@ function inventory_find_empty_slot(_inventory) {
 
     return -1;
 }
+#endregion
 
 
-// Add items and return the quantity successfully added.
-// Any quantity that does not fit remains with the caller.
+#region Inventory updates
+/// @function inventory_add(_inventory, _item_id, _amount)
+/// @description Add an item quantity to existing stacks and then empty slots.
+/// @param {Struct.Inventory} _inventory The inventory to update.
+/// @param {String} _item_id The item id to add.
+/// @param {Real} _amount The positive whole-number quantity to add.
+/// @returns {Real} The quantity added; any remainder stays with the caller.
 function inventory_add(_inventory, _item_id, _amount) {
     if (!is_struct(_inventory)) return 0;
     if (!is_string(_item_id)) return 0;
@@ -127,8 +146,12 @@ function inventory_add(_inventory, _item_id, _amount) {
 }
 
 
-// Remove a quantity of an item.
-// Returns true only if the entire requested quantity was removed.
+/// @function inventory_remove(_inventory, _item_id, _amount)
+/// @description Remove a whole-number quantity if the inventory contains all of it.
+/// @param {Struct.Inventory} _inventory The inventory to update.
+/// @param {String} _item_id The item id to remove.
+/// @param {Real} _amount The positive whole-number quantity to remove.
+/// @returns {Boolean} Whether the full quantity was removed; failure leaves the inventory unchanged.
 function inventory_remove(_inventory, _item_id, _amount) {
     if (!is_struct(_inventory)) return false;
     if (!is_string(_item_id)) return false;
@@ -163,10 +186,15 @@ function inventory_remove(_inventory, _item_id, _amount) {
 
     return true;
 }
+#endregion
 
 
-// Safely return the slot data at a given index.
-// Returns undefined for invalid or empty slots.
+#region Slot access
+/// @function inventory_get_slot(_inventory, _index)
+/// @description Retrieve a slot's item data after validating the inventory and index.
+/// @param {Struct.Inventory} _inventory The inventory to read.
+/// @param {Real} _index The zero-based slot index.
+/// @returns {Struct.InventorySlot|undefined} The slot data, or undefined for invalid or empty slots.
 function inventory_get_slot(_inventory, _index) {
     if (!is_struct(_inventory)) return undefined;
     if (!is_real(_index)) return undefined;
@@ -176,3 +204,4 @@ function inventory_get_slot(_inventory, _index) {
 
     return _inventory.slots[_index];
 }
+#endregion

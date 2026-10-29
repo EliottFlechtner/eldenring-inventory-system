@@ -1,5 +1,10 @@
 /// scr_inventory_tests
 
+/// @function inventory_test_assert(_condition, _message)
+/// @description Log a test result and return whether its condition passed.
+/// @param {Boolean} _condition The test condition to evaluate.
+/// @param {String} _message The test name or outcome description.
+/// @returns {Boolean} The value of the test condition.
 function inventory_test_assert(_condition, _message) {
     if (_condition) {
         show_debug_message("[PASS] " + _message);
@@ -11,6 +16,9 @@ function inventory_test_assert(_condition, _message) {
 }
 
 
+/// @function inventory_run_tests()
+/// @description Run the inventory core's built-in debug checks.
+/// @returns {Boolean} True after the test sequence finishes; individual pass or failure results are written to the debug log.
 function inventory_run_tests() {
     show_debug_message("=== INVENTORY TESTS BEGIN ===");
 
