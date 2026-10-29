@@ -10,8 +10,8 @@ item_database_init();
 item_handlers_init();
 
 // Create the player object (health, base stats, FP, runes, equipment).
-// Starts hurt, low on FP, and with only 3 talisman slots so healing, FP, and the talisman cap can be tested.
-global.player = new Player("Hero", 100, 65, 5, 0, 50, 30, 0, 3);
+// Starts hurt, low on FP, and with only 3 talisman slots, and a 40 equip load (the heaviest gear exceeds it) so healing, FP, and the talisman cap can be tested.
+global.player = new Player("Hero", 100, 65, 5, 0, 50, 30, 0, 3, 40);
 
 // Create the player's hotbar
 global.player_hotbar = hotbar_create();
@@ -32,6 +32,12 @@ inventory_fill_from_config(global.player_inventory, { template: "debug", clear: 
 
 //var _random_config = { min_qty: 1, unique: true, max_items: global.player_inventory.capacity - 10, clear: true };
 //inventory_fill_from_config(global.player_inventory, _random_config);
+
+// Validate item data now that handlers and the player exist. Problems are logged, not fatal.
+item_validation_run();
+
+// Uncomment to restore the last save (F5 saves, F9 loads in the inventory).
+//save_read();
 
 // Set to true to log the inventory self-tests at startup.
 if (false) inventory_run_tests();

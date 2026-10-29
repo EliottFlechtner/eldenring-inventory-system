@@ -175,6 +175,10 @@ function item_handler_equipment(_slot, _label) {
     );
 
     _handler.actions[$ "Equip"] = method({ slot: _slot, label: _label }, function(_item_id, _def, _quantity) {
+        if (!global.player.can_equip_within_load(slot, _item_id)) {
+            return inventory_action_result(false, "Too heavy: exceeds your equip load.");
+        }
+
         global.player.equip(slot, _item_id);
         return inventory_action_result(true, label + " equipped.");
     });
@@ -201,7 +205,10 @@ function item_handler_talisman() {
         },
         {
             Equip: function(_item_id, _def, _quantity, _replace_id = undefined) {
-                // The replaced talisman is only removed once the new one is known to fit.
+                if (!global.player.can_equip_within_load("talisman", _item_id, _replace_id)) {
+                    return inventory_action_result(false, "Too heavy: exceeds your equip load.");
+                }
+
                 if (!is_undefined(_replace_id) && global.player.unequip_talisman(_replace_id)) {
                     global.player.equip_talisman(_item_id);
                     return inventory_action_result(true, "Replaced " + item_definition_get(_replace_id).name + ".");

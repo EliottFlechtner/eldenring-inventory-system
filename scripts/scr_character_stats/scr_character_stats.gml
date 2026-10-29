@@ -9,8 +9,9 @@
 /// @param {Real} _fp The starting FP, clamped to the valid range.
 /// @param {Real} _runes The starting rune count.
 /// @param {Real} _max_talismans How many talismans can be worn at once.
+/// @param {Real} _max_equip_load The total weight of equipment the player can wear.
 /// @returns {Struct.Player} The initialized player object and its instance methods.
-function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0, _max_fp = 50, _fp = 50, _runes = 0, _max_talismans = 4) constructor {
+function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0, _max_fp = 50, _fp = 50, _runes = 0, _max_talismans = 4, _max_equip_load = 40) constructor {
     name = _name;
     max_health = _max_health;
     health_ = clamp(_health, 0, _max_health);
@@ -20,6 +21,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     fp = clamp(_fp, 0, _max_fp);
     runes = max(_runes, 0);
     max_talismans = _max_talismans;
+    max_equip_load = _max_equip_load;
 
     #region Equipment methods
     // Equipped item IDs. Empty string means no equipment.
@@ -149,6 +151,45 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
         var _def = get_equipped_definition(_slot);
         if (is_struct(_def) && variable_struct_exists(_def, _stat)) return _def[$ _stat];
         return 0;
+    };
+
+    /// @function Player.get_equip_load()
+    /// @description Total weight of everything equipped, including talismans.
+    /// @returns {Real} The current equip load.
+    static get_equip_load = function() {
+        var _load = 0;
+        var _slots = variable_struct_get_names(equipment);
+
+        for (var i = 0; i < array_length(_slots); i++) {
+            _load += item_get_weight(equipment[$ _slots[i]]);
+        }
+
+        for (var i = 0; i < array_length(talismans); i++) {
+            _load += item_get_weight(talismans[i]);
+        }
+
+        return _load;
+    };
+
+    /// @function Player.can_equip_within_load(_slot, _item_id, _replace_id)
+    /// @description Check whether equipping an item keeps the equip load within the maximum. The item it
+    /// displaces (the slot's current item, or the talisman being replaced) is subtracted first.
+    /// @param {String} _slot An equipment slot, or "talisman".
+    /// @param {String} _item_id The item to equip.
+    /// @param {String} [_replace_id] The worn talisman being replaced, when _slot is "talisman".
+    /// @returns {Boolean} Whether the resulting load fits.
+    static can_equip_within_load = function(_slot, _item_id, _replace_id = undefined) {
+        var _after = get_equip_load() + item_get_weight(_item_id);
+
+        if (_slot == "talisman") {
+            if (!is_undefined(_replace_id)) _after -= item_get_weight(_replace_id);
+        }
+        else if (is_equipment_slot(_slot)) {
+            _after -= item_get_weight(equipment[$ _slot]);
+        }
+
+        // Small tolerance for fractional weights.
+        return _after <= max_equip_load + 0.0001;
     };
 
     /// @function Player.get_attack()
