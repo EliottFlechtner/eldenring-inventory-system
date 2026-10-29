@@ -28,34 +28,13 @@ ui_confirmation_height = 145;
 // Keyboard repeat and menu behavior can be extended later.
 ui_last_action = "";
 
-// Actions related.
-ui_actions_menu_open = false;
-ui_context_item = "";
-ui_actions = [];
-ui_action_selected = 0;
+// Menus and dialogs share one state machine (see scr_inventory_ui_state).
+inventory_ui_state_init(id);
 
-ui_confirm_open = false;
-ui_pending_action = "";
-ui_pending_item = "";
-ui_pending_quantity = 1;
-
-// Replacement picker: choose which item to swap out when an action needs a free slot.
-ui_replace_open = false;
-ui_replace_action = "";
-ui_replace_item = "";
-ui_replace_options = [];
-ui_replace_selected = 0;
+// Dialog sizes.
 ui_replace_width = 340;
-
-// Quantity picker for actions that can apply to several items at once.
-ui_quantity_open = false;
-ui_quantity_action = "";
-ui_quantity_item = "";
-ui_quantity_max = 1;
-ui_quantity_value = 1;
 ui_quantity_width = 320;
 ui_quantity_height = 150;
-
 ui_message = "";
 ui_message_timer = 0;
 // Message durations are frame counts, scaled to the game's step rate.

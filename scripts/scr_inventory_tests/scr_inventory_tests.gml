@@ -22,7 +22,7 @@ function inventory_test_assert(_condition, _message) {
 /// @function inventory_test_reset()
 /// @description Install a fresh player (3 talisman slots), empty 12-slot inventory, and hotbar.
 function inventory_test_reset() {
-    global.player = new Player("Tester", 100, 50, 5, 0, 50, 10, 0, 3);
+    global.player = new Player("Tester", 100, 50, 5, 0, 50, 10, 0, 3, 40);
     global.player_inventory = inventory_create(12);
     global.player_hotbar = hotbar_create();
 }
@@ -47,6 +47,10 @@ function inventory_run_tests() {
     inventory_test_quantities();
     inventory_test_drop_discard();
     inventory_test_registry();
+    inventory_test_equip_load();
+    inventory_test_save_load();
+    inventory_test_validation();
+    inventory_test_ui_state();
 
     global.player = _saved_player;
     global.player_inventory = _saved_inventory;
@@ -385,5 +389,221 @@ function inventory_test_registry() {
     variable_struct_remove(global.item_db, "test_gadget");
     variable_struct_remove(global.item_effect_handlers, "test_runes");
     variable_struct_remove(global.item_category_handlers, "test_category");
+}
+#endregion
+
+#region Equip load
+function inventory_test_equip_load() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "bull_goat_armor", 1);
+    inventory_add(_inv, "greatshield", 1);
+    inventory_add(_inv, "claymore", 1);
+
+    inventory_test_assert(_p.get_equip_load() == 0, "Equip load starts at zero");
+    inventory_test_assert(inventory_execute_action("bull_goat_armor", "Equip").ok, "Heavy armor fits an empty load");
+    inventory_test_assert(inventory_execute_action("greatshield", "Equip").ok, "Shield still fits");
+    inventory_test_assert(abs(_p.get_equip_load() - 34.5) < 0.001, "Equip load sums worn weights");
+
+    var _r = inventory_execute_action("claymore", "Equip");
+    inventory_test_assert(!_r.ok && _p.get_equipped_id("weapon") == "", "Over-limit weapon is rejected and not equipped");
+    inventory_test_assert(abs(_p.get_equip_load() - 34.5) < 0.001, "Rejected equip leaves load unchanged");
+
+    // Swapping a heavy item for a lighter one only counts the net change.
+    inventory_add(_inv, "buckler", 1);
+    inventory_test_assert(inventory_execute_action("buckler", "Equip").ok, "Swapping shield uses the net weight");
+    inventory_test_assert(abs(_p.get_equip_load() - 23) < 0.001, "Load reflects the swapped shield");
+    inventory_test_assert(inventory_execute_action("claymore", "Equip").ok, "Weapon fits after lightening the load");
+
+    inventory_test_assert(item_get_weight("bull_goat_armor") == 21, "Explicit weights are kept");
+    inventory_test_assert(item_get_weight("flask_crimson_tears") == 0, "Consumables default to zero weight");
+}
+#endregion
+
+
+#region Save and load
+function inventory_test_save_load() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "flask_crimson_tears", 9);
+    inventory_add(_inv, "claymore", 1);
+    inventory_add(_inv, "buckler", 1);
+    inventory_add(_inv, "crimson_amber_medallion", 1);
+    inventory_add(_inv, "green_turtle_talisman", 1);
+    inventory_execute_action("claymore", "Equip");
+    inventory_execute_action("buckler", "Equip");
+    inventory_execute_action("crimson_amber_medallion", "Equip");
+    inventory_execute_action("green_turtle_talisman", "Equip");
+    hotbar_assign(global.player_hotbar, 2, "flask_crimson_tears");
+    global.player_hotbar.selected_slot = 2;
+    _p.health_ = 37;
+    _p.fp = 11;
+    _p.runes = 1234;
+
+    // Round trip through JSON text, like a real save file.
+    var _json = json_stringify(save_serialize());
+
+    inventory_test_reset();
+    var _r = save_apply(json_parse(_json));
+    _inv = global.player_inventory;
+    _p = global.player;
+
+    inventory_test_assert(_r.ok && array_length(_r.warnings) == 0, "A valid save loads without warnings");
+    inventory_test_assert(inventory_count_item(_inv, "flask_crimson_tears") == 9, "Quantities are restored");
+    inventory_test_assert(_p.get_equipped_id("weapon") == "claymore" && _p.get_equipped_id("shield") == "buckler", "Equipment is restored");
+    inventory_test_assert(array_length(_p.talismans) == 2 && _p.talismans[0] == "crimson_amber_medallion", "Talismans are restored in order");
+    inventory_test_assert(global.player_hotbar.slots[2] == "flask_crimson_tears" && global.player_hotbar.selected_slot == 2, "Quick slots are restored");
+    inventory_test_assert(_p.health_ == 37 && _p.fp == 11 && _p.runes == 1234, "HP, FP, and runes are restored");
+
+    // Slot positions are preserved.
+    inventory_test_reset();
+    inventory_add(global.player_inventory, "claymore", 1);
+    global.player_inventory.slots[5] = global.player_inventory.slots[0];
+    global.player_inventory.slots[0] = undefined;
+    var _data = save_serialize();
+    inventory_test_reset();
+    save_apply(_data);
+    inventory_test_assert(is_struct(global.player_inventory.slots[5]) && is_undefined(global.player_inventory.slots[0]), "Slot positions are preserved");
+
+    // Real file round trip.
+    var _path = "inventory_test_save.json";
+    inventory_test_assert(save_write(_path).ok, "Save file is written");
+    inventory_test_reset();
+    inventory_test_assert(save_read(_path).ok && inventory_count_item(global.player_inventory, "claymore") == 1, "Save file is read back");
+    file_delete(_path);
+    inventory_test_assert(!save_read(_path).ok, "A missing save file is reported");
+
+    // Invalid data never half-applies.
+    inventory_test_reset();
+    inventory_add(global.player_inventory, "claymore", 2);
+    inventory_test_assert(!save_apply(undefined).ok, "Non-struct data is rejected");
+    inventory_test_assert(!save_apply({ version: 999 }).ok, "Wrong version is rejected");
+    inventory_test_assert(!save_apply({ version: INVENTORY_SAVE_VERSION, player: {}, inventory: {} }).ok, "Missing slots are rejected");
+    inventory_test_assert(inventory_count_item(global.player_inventory, "claymore") == 2, "Failed loads leave the game untouched");
+
+    // Bad entries are repaired and reported.
+    var _bad = {
+        version: INVENTORY_SAVE_VERSION,
+        player: { name: "x", health: 9999, fp: -5, runes: 10 },
+        inventory: { capacity: 12, slots: [
+            { slot: 0, id: "no_such_item", qty: 1 },
+            { slot: 1, id: "flask_crimson_tears", qty: 9999 },
+            { slot: 2, id: "claymore", qty: 1 }
+        ] },
+        equipment: { weapon: "claymore", shield: "buckler", armor: "bull_goat_armor" },
+        talismans: ["green_turtle_talisman", "claymore"],
+        hotbar: { slots: ["claymore", "", "", ""], selected: 99 }
+    };
+    var _fixed = save_apply(_bad);
+    var _fp = global.player;
+
+    inventory_test_assert(_fixed.ok && array_length(_fixed.warnings) >= 5, "Bad entries load with warnings");
+    inventory_test_assert(inventory_count_item(global.player_inventory, "no_such_item") == 0, "Unknown items are dropped");
+    inventory_test_assert(inventory_count_item(global.player_inventory, "flask_crimson_tears") <= item_definition_get("flask_crimson_tears").max_stack, "Oversized stacks are clamped");
+    inventory_test_assert(_fp.get_equipped_id("weapon") == "claymore" && _fp.get_equipped_id("shield") == "" && _fp.get_equipped_id("armor") == "", "Equipment not in the inventory is unequipped");
+    inventory_test_assert(array_length(_fp.talismans) == 0, "Unowned or non-talisman entries are removed");
+    inventory_test_assert(_fp.health_ == _fp.max_health && _fp.fp == 0, "HP and FP are clamped");
+    inventory_test_assert(global.player_hotbar.slots[0] == "" && global.player_hotbar.selected_slot == 3, "Invalid quick slots are cleared and selection is clamped");
+}
+#endregion
+
+
+#region Data validation
+function inventory_test_validation() {
+    var _good = item_validation_collect(global.item_db_raw, [], {});
+    inventory_test_assert(array_length(_good.errors) == 0, "The shipped item database has no validation errors");
+
+    var _defs = [
+        { id: "dup", name: "A", category: "consumable", description: "", stackable: true, max_stack: 5, icon: -1, use_effect: "heal_hp", use_amount: 1 },
+        { id: "dup", name: "B", category: "consumable", description: "", stackable: true, max_stack: 5, icon: -1 },
+        { id: "broken", category: "weapon", stackable: false, max_stack: 3 },
+        { id: "bad_effect", name: "C", category: "consumable", description: "", stackable: true, max_stack: 5, icon: -1, use_effect: "nope", use_amount: 1 },
+        { id: "no_handler", name: "D", category: "mystery", description: "", stackable: false, max_stack: 1, icon: -1 }
+    ];
+    var _built = item_database_build(_defs);
+    var _report = item_validation_collect(_defs, _built.duplicates, { bad: ["ghost_item"] });
+    var _text = "";
+    for (var i = 0; i < array_length(_report.errors); i++) _text += _report.errors[i] + "\n";
+    var _warn = "";
+    for (var i = 0; i < array_length(_report.warnings); i++) _warn += _report.warnings[i] + "\n";
+
+    inventory_test_assert(string_pos("Duplicate item id 'dup'", _text) > 0, "Duplicate ids are detected");
+    inventory_test_assert(string_pos("broken", _text) > 0, "Broken definitions are detected");
+    inventory_test_assert(string_pos("no_handler", _warn) > 0, "Categories without a handler are reported");
+    inventory_test_assert(string_pos("ghost_item", _warn) > 0, "Unknown template items are reported");
+    inventory_test_assert(!is_undefined(_built.db[$ "dup"]) && _built.db.dup.name == "A", "The first duplicate definition wins");
+}
+#endregion
+
+
+#region UI state machine
+function inventory_test_ui_state() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    // A plain struct stands in for the UI instance.
+    var _ui = { ui_message: "", ui_message_timer: 0, ui_message_duration_brief: 90, ui_message_duration_standard: 120 };
+    inventory_ui_state_init(_ui);
+
+    inventory_add(_inv, "flask_crimson_tears", 5);
+    inventory_test_assert(inventory_ui_is_grid(_ui), "UI starts on the grid");
+    inventory_test_assert(inventory_ui_open_actions(_ui, "flask_crimson_tears") && _ui.ui_state == InventoryUIState.ACTIONS, "Opening an item shows its action menu");
+
+    // Discard a stack: quantity -> confirm -> execute.
+    _ui.ui_action_selected = array_get_index(_ui.ui_actions, "Discard");
+    inventory_ui_choose_selected_action(_ui);
+    inventory_test_assert(_ui.ui_state == InventoryUIState.QUANTITY && _ui.ui_ctx.quantity_max == 5, "Stack actions ask for a quantity first");
+    inventory_ui_quantity_adjust(_ui, 99);
+    inventory_test_assert(_ui.ui_ctx.quantity == 5, "Quantity is clamped to the stack");
+    inventory_ui_quantity_adjust(_ui, -99);
+    inventory_test_assert(_ui.ui_ctx.quantity == 1, "Quantity never drops below one");
+    inventory_ui_quantity_adjust(_ui, 2);
+    inventory_ui_quantity_confirm(_ui);
+    inventory_test_assert(_ui.ui_state == InventoryUIState.CONFIRM, "Quantity leads to confirmation");
+
+    inventory_ui_back(_ui);
+    inventory_test_assert(_ui.ui_state == InventoryUIState.ACTIONS && _ui.ui_message == "Cancelled.", "Back from a dialog returns to the action menu");
+    inventory_test_assert(inventory_count_item(_inv, "flask_crimson_tears") == 5, "Cancelling changes nothing");
+
+    inventory_ui_choose_selected_action(_ui);
+    inventory_ui_quantity_adjust(_ui, 2);
+    inventory_ui_quantity_confirm(_ui);
+    inventory_ui_confirm_accept(_ui);
+    inventory_test_assert(inventory_ui_is_grid(_ui) && inventory_count_item(_inv, "flask_crimson_tears") == 2, "Confirming executes and returns to the grid");
+
+    // Single items skip the quantity step.
+    inventory_add(_inv, "claymore", 1);
+    inventory_ui_open_actions(_ui, "claymore");
+    _ui.ui_action_selected = array_get_index(_ui.ui_actions, "Discard");
+    inventory_ui_choose_selected_action(_ui);
+    inventory_test_assert(_ui.ui_state == InventoryUIState.CONFIRM, "Single items skip the quantity picker");
+    inventory_ui_reset(_ui);
+
+    // Equip with full talismans: replace -> execute.
+    inventory_add(_inv, "crimson_amber_medallion", 1);
+    inventory_add(_inv, "cerulean_amber_medallion", 1);
+    inventory_add(_inv, "green_turtle_talisman", 1);
+    inventory_add(_inv, "erdtree_favor", 1);
+    inventory_execute_action("crimson_amber_medallion", "Equip");
+    inventory_execute_action("cerulean_amber_medallion", "Equip");
+    inventory_execute_action("green_turtle_talisman", "Equip");
+
+    inventory_ui_open_actions(_ui, "erdtree_favor");
+    _ui.ui_action_selected = array_get_index(_ui.ui_actions, "Equip");
+    inventory_ui_choose_selected_action(_ui);
+    inventory_test_assert(_ui.ui_state == InventoryUIState.REPLACE, "Full talisman slots open the replacement picker");
+    inventory_ui_replace_move(_ui, 1);
+    inventory_ui_replace_confirm(_ui);
+    inventory_test_assert(inventory_ui_is_grid(_ui) && array_contains(_p.talismans, "erdtree_favor") && array_length(_p.talismans) == 3, "Picking a replacement equips the new talisman");
+
+    // Escape unwinds one layer at a time.
+    inventory_ui_open_actions(_ui, "claymore");
+    inventory_test_assert(inventory_ui_back(_ui) && inventory_ui_is_grid(_ui), "Back from the menu returns to the grid");
+    inventory_test_assert(!inventory_ui_back(_ui), "Back on the grid reports nothing to close");
 }
 #endregion
