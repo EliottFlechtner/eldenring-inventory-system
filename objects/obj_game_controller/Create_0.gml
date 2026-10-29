@@ -10,7 +10,8 @@ item_database_init();
 item_handlers_init();
 
 // Create the player object (health, base stats, FP, runes, equipment).
-global.player = new Player("Hero", 100, 65, 5, 0, 50, 30, 0);
+// Starts hurt, low on FP, and with only 3 talisman slots so healing, FP, and the talisman cap can be tested.
+global.player = new Player("Hero", 100, 65, 5, 0, 50, 30, 0, 3);
 
 // Create the player's hotbar
 global.player_hotbar = hotbar_create();
@@ -25,15 +26,13 @@ global.player_inventory = inventory_create(24);
 // Add some starting items for later UI development.
 //inventory_fill_from_config(global.player_inventory, { template: "starter" });
 
-var _random_config = {
-    //categories: ["weapon", "armor", "consumable"], // omit for all categories
-    //exclude: ["lords_rune"],                       // item ids never added
-    min_qty: 1,                                    // stackable quantity range
-    //max_qty: 5,
-    unique: true,                                  // each item id at most once
-    max_items: global.player_inventory.capacity-10,   // omit to fill until full
-    clear: true,                                   // empty the inventory first
-};
-inventory_fill_from_config(global.player_inventory, _random_config);
+// Debug loadout covering every item category (see the "debug" template). Swap to the random config
+// below for variety.
+inventory_fill_from_config(global.player_inventory, { template: "debug", clear: true });
 
+//var _random_config = { min_qty: 1, unique: true, max_items: global.player_inventory.capacity - 10, clear: true };
+//inventory_fill_from_config(global.player_inventory, _random_config);
+
+// Set to true to log the inventory self-tests at startup.
+if (false) inventory_run_tests();
 show_debug_message("Player inventory initialized.");

@@ -8,8 +8,9 @@
 /// @param {Real} _max_fp The maximum FP value.
 /// @param {Real} _fp The starting FP, clamped to the valid range.
 /// @param {Real} _runes The starting rune count.
+/// @param {Real} _max_talismans How many talismans can be worn at once.
 /// @returns {Struct.Player} The initialized player object and its instance methods.
-function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0, _max_fp = 50, _fp = 50, _runes = 0) constructor {
+function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0, _max_fp = 50, _fp = 50, _runes = 0, _max_talismans = 4) constructor {
     name = _name;
     max_health = _max_health;
     health_ = clamp(_health, 0, _max_health);
@@ -18,15 +19,18 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     max_fp = _max_fp;
     fp = clamp(_fp, 0, _max_fp);
     runes = max(_runes, 0);
+    max_talismans = _max_talismans;
 
     #region Equipment methods
     // Equipped item IDs. Empty string means no equipment.
     equipment = {
         weapon: "",
         shield: "",
-        armor: "",
-        talisman: ""
+        armor: ""
     };
+
+    // Worn talisman item ids; the count is capped by max_talismans.
+    talismans = [];
 
     /// @function Player.is_equipment_slot(_slot)
     /// @description Check whether a slot accepts equipment.
@@ -61,6 +65,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     /// @returns {Boolean} Whether the item is currently equipped.
     static is_equipped = function(_item_id) {
         if (_item_id == "") return false;
+        if (is_talisman_equipped(_item_id)) return true;
 
         var _slots = variable_struct_get_names(equipment);
         for (var i = 0; i < array_length(_slots); i++) {
@@ -68,6 +73,37 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
         }
 
         return false;
+    };
+
+    /// @function Player.is_talisman_equipped(_item_id)
+    /// @returns {Boolean} Whether the talisman is currently worn.
+    static is_talisman_equipped = function(_item_id) {
+        return array_contains(talismans, _item_id);
+    };
+
+    /// @function Player.can_equip_talisman()
+    /// @returns {Boolean} Whether a talisman slot is free.
+    static can_equip_talisman = function() {
+        return array_length(talismans) < max_talismans;
+    };
+
+    /// @function Player.equip_talisman(_item_id)
+    /// @param {String} _item_id The talisman item id.
+    /// @returns {Boolean} Whether it was equipped (false if already worn or all slots are full).
+    static equip_talisman = function(_item_id) {
+        if (is_talisman_equipped(_item_id) || !can_equip_talisman()) return false;
+        array_push(talismans, _item_id);
+        return true;
+    };
+
+    /// @function Player.unequip_talisman(_item_id)
+    /// @param {String} _item_id The talisman item id.
+    /// @returns {Boolean} Whether the talisman was worn and removed.
+    static unequip_talisman = function(_item_id) {
+        var _index = array_get_index(talismans, _item_id);
+        if (_index < 0) return false;
+        array_delete(talismans, _index, 1);
+        return true;
     };
 
     /// @function Player.equip(_slot, _item_id)
@@ -94,6 +130,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     /// @param {String} _item_id The item id to remove from equipment.
     /// @returns {undefined} No value is returned.
     static unequip_item = function(_item_id) {
+        unequip_talisman(_item_id);
         var _slots = variable_struct_get_names(equipment);
         for (var i = 0; i < array_length(_slots); i++) {
             if (equipment[$ _slots[i]] == _item_id) equipment[$ _slots[i]] = "";

@@ -13,7 +13,7 @@ ui_slot_gap = 8;
 ui_hotbar_bottom_margin = 24;
 
 ui_panel_width = 860;
-ui_panel_height = 500;
+ui_panel_height = 560;
 ui_panel_padding = 24;
 ui_panel_header_height = 76;
 ui_detail_gap = 28;
@@ -37,6 +37,24 @@ ui_action_selected = 0;
 ui_confirm_open = false;
 ui_pending_action = "";
 ui_pending_item = "";
+ui_pending_quantity = 1;
+
+// Replacement picker: choose which item to swap out when an action needs a free slot.
+ui_replace_open = false;
+ui_replace_action = "";
+ui_replace_item = "";
+ui_replace_options = [];
+ui_replace_selected = 0;
+ui_replace_width = 340;
+
+// Quantity picker for actions that can apply to several items at once.
+ui_quantity_open = false;
+ui_quantity_action = "";
+ui_quantity_item = "";
+ui_quantity_max = 1;
+ui_quantity_value = 1;
+ui_quantity_width = 320;
+ui_quantity_height = 150;
 
 ui_message = "";
 ui_message_timer = 0;

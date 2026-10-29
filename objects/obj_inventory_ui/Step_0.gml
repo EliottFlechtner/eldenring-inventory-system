@@ -5,7 +5,7 @@ inventory_ui_message_tick(id);
 #region Inventory visibility
 // Open/close the main inventory.
 if (keyboard_check_pressed(vk_tab)) {
-    if (!ui_actions_menu_open && !ui_confirm_open) {
+    if (!ui_actions_menu_open && !ui_confirm_open && !ui_quantity_open && !ui_replace_open) {
         inventory_open = !inventory_open;
         inventory_ui_message_clear(id);
     }
@@ -15,7 +15,23 @@ if (keyboard_check_pressed(vk_tab)) {
 #region Cancel key press handling
 // Escape closes the topmost layer first.
 if (inventory_open && keyboard_check_pressed(vk_escape)) {
-    if (ui_confirm_open) {
+    if (ui_replace_open) {
+        ui_replace_open = false;
+        inventory_ui_message_show(
+            id,
+            "Cancelled.",
+            ui_message_duration_brief
+        );
+    }
+    else if (ui_quantity_open) {
+        ui_quantity_open = false;
+        inventory_ui_message_show(
+            id,
+            "Cancelled.",
+            ui_message_duration_brief
+        );
+    }
+    else if (ui_confirm_open) {
         ui_confirm_open = false;
         ui_pending_action = "";
         inventory_ui_message_show(
@@ -51,6 +67,81 @@ if (!inventory_open) {
 }
 #endregion
 
+#region Replacement picker navigation
+if (ui_replace_open) {
+    var _replace_count = array_length(ui_replace_options);
+
+    if (keyboard_check_pressed(vk_up)) {
+        ui_replace_selected = (ui_replace_selected - 1 + _replace_count) mod _replace_count;
+    }
+
+    if (keyboard_check_pressed(vk_down)) {
+        ui_replace_selected = (ui_replace_selected + 1) mod _replace_count;
+    }
+
+    if (keyboard_check_pressed(vk_enter)) {
+        var _result = inventory_execute_action(
+            ui_replace_item,
+            ui_replace_action,
+            1,
+            ui_replace_options[ui_replace_selected]
+        );
+
+        inventory_ui_message_show(id, _result.message, ui_message_duration_standard);
+
+        ui_replace_open = false;
+        ui_actions_menu_open = false;
+        ui_actions = [];
+    }
+
+    exit;
+}
+#endregion
+
+#region Quantity picker navigation
+if (ui_quantity_open) {
+    if (keyboard_check_pressed(vk_up) || keyboard_check_pressed(vk_right)) {
+        ui_quantity_value = min(ui_quantity_value + 1, ui_quantity_max);
+    }
+
+    if (keyboard_check_pressed(vk_down) || keyboard_check_pressed(vk_left)) {
+        ui_quantity_value = max(ui_quantity_value - 1, 1);
+    }
+
+    // Page keys jump by 10; Home/End select the minimum or maximum.
+    if (keyboard_check_pressed(vk_pageup)) ui_quantity_value = min(ui_quantity_value + 10, ui_quantity_max);
+    if (keyboard_check_pressed(vk_pagedown)) ui_quantity_value = max(ui_quantity_value - 10, 1);
+    if (keyboard_check_pressed(vk_end)) ui_quantity_value = ui_quantity_max;
+    if (keyboard_check_pressed(vk_home)) ui_quantity_value = 1;
+
+    if (keyboard_check_pressed(vk_enter)) {
+        ui_quantity_open = false;
+
+        // Drop and discard still need confirmation, now with the chosen amount.
+        if (ui_quantity_action == "Drop" || ui_quantity_action == "Discard") {
+            ui_pending_action = ui_quantity_action;
+            ui_pending_item = ui_quantity_item;
+            ui_pending_quantity = ui_quantity_value;
+            ui_confirm_open = true;
+            exit;
+        }
+
+        var _result = inventory_execute_action(
+            ui_quantity_item,
+            ui_quantity_action,
+            ui_quantity_value
+        );
+
+        inventory_ui_message_show(id, _result.message, ui_message_duration_standard);
+
+        ui_actions_menu_open = false;
+        ui_actions = [];
+    }
+
+    exit;
+}
+#endregion
+
 #region Confirmation sub-menu navigation
 // Confirmation dialog has highest priority.
 // Currently, confirmation can only be for dropping/discarding
@@ -66,11 +157,12 @@ if (ui_confirm_open) {
 		    _result = inventory_drop_item(
 		        ui_pending_item,
 		        _drop_x,
-		        _drop_y
+		        _drop_y,
+		        ui_pending_quantity
 		    );
 		}
         else if (ui_pending_action == "Discard") {
-            _result = inventory_discard_item(ui_pending_item);
+            _result = inventory_discard_item(ui_pending_item, ui_pending_quantity);
         }
         else {
             _result = inventory_action_result(
@@ -121,9 +213,36 @@ if (ui_actions_menu_open) {
             var _action = ui_actions[ui_action_selected];
 
             if (_action == "Drop" || _action == "Discard") {
-                ui_pending_action = _action;
-                ui_pending_item = ui_context_item;
-                ui_confirm_open = true;
+                var _stack_count = inventory_get_action_max_quantity(ui_context_item, _action);
+
+                // Stacks ask for an amount first; single items go straight to confirmation.
+                if (_stack_count > 1) {
+                    ui_quantity_open = true;
+                    ui_quantity_action = _action;
+                    ui_quantity_item = ui_context_item;
+                    ui_quantity_max = _stack_count;
+                    ui_quantity_value = 1;
+                }
+                else {
+                    ui_pending_action = _action;
+                    ui_pending_item = ui_context_item;
+                    ui_pending_quantity = 1;
+                    ui_confirm_open = true;
+                }
+            }
+            else if (array_length(inventory_get_action_replace_options(ui_context_item, _action)) > 0) {
+                ui_replace_open = true;
+                ui_replace_action = _action;
+                ui_replace_item = ui_context_item;
+                ui_replace_options = inventory_get_action_replace_options(ui_context_item, _action);
+                ui_replace_selected = 0;
+            }
+            else if (inventory_get_action_max_quantity(ui_context_item, _action) > 1) {
+                ui_quantity_open = true;
+                ui_quantity_action = _action;
+                ui_quantity_item = ui_context_item;
+                ui_quantity_max = inventory_get_action_max_quantity(ui_context_item, _action);
+                ui_quantity_value = 1;
             }
             else {
                 var _result = inventory_execute_action(

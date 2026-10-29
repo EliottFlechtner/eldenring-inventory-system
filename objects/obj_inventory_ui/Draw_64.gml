@@ -202,6 +202,14 @@ for (var i = 0; i < ui_slot_count; i++) {
                 draw_set_valign(fa_top);
             }
 
+            // Equipped marker: a small dot in the top-right corner.
+            if (global.player.is_equipped(_slot.item_id)) {
+                draw_set_color(make_color_rgb(239, 203, 119));
+                draw_circle(_sx + _slot_size - 8, _sy + 8, 4, false);
+                draw_set_color(make_color_rgb(15, 16, 18));
+                draw_circle(_sx + _slot_size - 8, _sy + 8, 4, true);
+            }
+
             // Stack quantity
             if (_slot.quantity > 1) {
                 draw_set_color(c_white);
@@ -417,6 +425,29 @@ if (is_struct(_selected)) {
             _stats_y + 114,
             "Armor: " + _armor_name
         );
+
+        var _shield_def = global.player.get_equipped_definition("shield");
+        draw_text(
+            _detail_x,
+            _stats_y + 136,
+            "Shield: " + (is_struct(_shield_def) ? _shield_def.name : "None")
+        );
+
+        draw_text(
+            _detail_x + 170,
+            _stats_y + 70,
+            "Talismans (" + string(array_length(global.player.talismans)) + " / " + string(global.player.max_talismans) + "):"
+        );
+
+        for (var _t = 0; _t < global.player.max_talismans; _t++) {
+            var _talisman_name = "-";
+
+            if (_t < array_length(global.player.talismans)) {
+                _talisman_name = item_definition_get(global.player.talismans[_t]).name;
+            }
+
+            draw_text(_detail_x + 186, _stats_y + 92 + _t * 22, _talisman_name);
+        }
     }
 }
 else {
@@ -478,6 +509,11 @@ if (ui_actions_menu_open) {
         }
         else {
             draw_set_color(c_white);
+        }
+
+        // Unsupported actions are grayed out but remain selectable.
+        if (inventory_get_action_unsupported_reason(ui_context_item, ui_actions[i]) != "") {
+            draw_set_color(i == ui_action_selected ? make_color_rgb(150, 140, 110) : make_color_rgb(110, 108, 102));
         }
 
         draw_text(
@@ -574,8 +610,11 @@ if (ui_confirm_open) {
         true
     );
 
+    var _confirm_def = item_definition_get(ui_pending_item);
     var _confirm_text =
-        "Confirm " + string_lower(ui_pending_action);
+        "Confirm " + string_lower(ui_pending_action)
+        + " " + (ui_pending_quantity > 1 ? string(ui_pending_quantity) + "x " : "")
+        + (is_struct(_confirm_def) ? _confirm_def.name : "");
 
     draw_set_color(c_white);
 
@@ -598,6 +637,87 @@ if (ui_confirm_open) {
         _confirm_y + 100,
         "ENTER: Confirm     ESC: Cancel"
     );
+}
+#endregion
+
+#region Replacement dialog
+if (ui_replace_open) {
+    var _rep_count = array_length(ui_replace_options);
+    var _rep_row_h = ui_menu_row_height;
+    var _rep_w = ui_replace_width;
+    var _rep_h = 60 + _rep_count * _rep_row_h + 34;
+    var _rep_x = (_gw - _rep_w) * 0.5;
+    var _rep_y = (_gh - _rep_h) * 0.5;
+    var _rep_new = item_definition_get(ui_replace_item);
+
+    draw_set_color(c_black);
+    draw_set_alpha(0.45);
+    draw_rectangle(0, 0, _gw, _gh, false);
+    draw_set_alpha(1);
+
+    draw_set_color(make_color_rgb(31, 30, 28));
+    draw_rectangle(_rep_x, _rep_y, _rep_x + _rep_w, _rep_y + _rep_h, false);
+
+    draw_set_color(make_color_rgb(239, 203, 119));
+    draw_rectangle(_rep_x, _rep_y, _rep_x + _rep_w, _rep_y + _rep_h, true);
+
+    draw_set_color(c_white);
+    draw_text(_rep_x + 18, _rep_y + 14, "No free slot for " + (is_struct(_rep_new) ? _rep_new.name : ""));
+    draw_set_color(make_color_rgb(190, 186, 176));
+    draw_text(_rep_x + 18, _rep_y + 36, "Choose one to replace:");
+
+    for (var _r = 0; _r < _rep_count; _r++) {
+        var _row_y = _rep_y + 60 + _r * _rep_row_h;
+        var _rep_def = item_definition_get(ui_replace_options[_r]);
+
+        if (_r == ui_replace_selected) {
+            draw_set_color(make_color_rgb(91, 77, 51));
+            draw_rectangle(_rep_x + 4, _row_y, _rep_x + _rep_w - 4, _row_y + _rep_row_h, false);
+            draw_set_color(make_color_rgb(239, 203, 119));
+        }
+        else {
+            draw_set_color(c_white);
+        }
+
+        draw_text(_rep_x + 18, _row_y + 8, is_struct(_rep_def) ? _rep_def.name : ui_replace_options[_r]);
+    }
+
+    draw_set_color(make_color_rgb(190, 186, 176));
+    draw_text(_rep_x + 18, _rep_y + _rep_h - 26, "UP/DOWN: Select   ENTER: Replace   ESC: Cancel");
+}
+#endregion
+
+#region Quantity dialog
+if (ui_quantity_open) {
+    var _qty_w = ui_quantity_width;
+    var _qty_h = ui_quantity_height;
+    var _qty_x = (_gw - _qty_w) * 0.5;
+    var _qty_y = (_gh - _qty_h) * 0.5;
+
+    draw_set_color(c_black);
+    draw_set_alpha(0.45);
+    draw_rectangle(0, 0, _gw, _gh, false);
+    draw_set_alpha(1);
+
+    draw_set_color(make_color_rgb(31, 30, 28));
+    draw_rectangle(_qty_x, _qty_y, _qty_x + _qty_w, _qty_y + _qty_h, false);
+
+    draw_set_color(make_color_rgb(239, 203, 119));
+    draw_rectangle(_qty_x, _qty_y, _qty_x + _qty_w, _qty_y + _qty_h, true);
+
+    var _qty_def = item_definition_get(ui_quantity_item);
+
+    draw_set_color(c_white);
+    draw_text(_qty_x + 18, _qty_y + 18, ui_quantity_action + " " + (is_struct(_qty_def) ? _qty_def.name : ""));
+
+    draw_set_halign(fa_center);
+    draw_set_color(make_color_rgb(239, 203, 119));
+    draw_text(_qty_x + _qty_w * 0.5, _qty_y + 56, "<  " + string(ui_quantity_value) + " / " + string(ui_quantity_max) + "  >");
+    draw_set_halign(fa_left);
+
+    draw_set_color(make_color_rgb(190, 186, 176));
+    draw_text(_qty_x + 18, _qty_y + 100, "ARROWS: Amount   ENTER: Confirm");
+    draw_text(_qty_x + 18, _qty_y + 122, "PGUP/PGDN: +/-10   ESC: Cancel");
 }
 #endregion
 

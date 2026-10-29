@@ -93,6 +93,15 @@ function inventory_templates_create() {
         knight: [
             ["longsword", 1], ["large_leather_shield", 1], ["knight_helm", 1], ["flask_crimson_tears", 5], ["smithing_stone_1", 4]
         ],
+        // Covers every category and handler path for manual testing (22 slots).
+        debug: [
+            ["flask_crimson_tears", 10], ["flask_cerulean_tears", 8], ["golden_rune_1", 20], ["golden_rune_5", 5],
+            ["rowa_fruit", 20], ["fire_pot", 5], ["smithing_stone_1", 12], ["arrow", 40],
+            ["uchigatana", 1], ["claymore", 1], ["moonveil", 1], ["buckler", 1], ["greatshield", 1],
+            ["knight_helm", 1], ["bull_goat_armor", 1],
+            ["crimson_amber_medallion", 1], ["cerulean_amber_medallion", 1], ["green_turtle_talisman", 1], ["erdtree_favor", 1],
+            ["stonesword_key", 1], ["mimic_tear_ashes", 1], ["lone_wolf_ashes", 1]
+        ],
         crafter: [
             ["arteria_leaf", 10], ["bone_dart", 20], ["fire_pot", 5], ["throwing_dagger", 15]
         ]
