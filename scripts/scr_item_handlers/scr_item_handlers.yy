@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_item_handlers",
   "parent":{
-    "name":"Inventory System",
-    "path":"folders/Inventory System.yy",
+    "name":"Items",
+    "path":"folders/Inventory System/Items.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

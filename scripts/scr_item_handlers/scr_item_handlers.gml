@@ -26,61 +26,71 @@ function item_handlers_init() {
     global.item_effect_handlers = {};
 
     #region Consumable effects
-    item_effect_register("heal", function(_def, _quantity) {
-        if (global.player.is_health_full()) {
-            return inventory_action_result(false, "Health is already full.");
-        }
+    item_effect_register(
+		"heal",
+		function(_def, _quantity) { // Heal the player.
+		    if (global.player.is_health_full()) return inventory_action_result(false, "Health is already full.");
+		    global.player.heal(_def.use_amount * _quantity);
+		    return inventory_action_result(true, "Health restored.");
+		},
+		function(_def) { // No point using more than it takes to fill health.
+		    return ceil((global.player.max_health - global.player.health_) / _def.use_amount);
+		}
+	);
 
-        global.player.heal(_def.use_amount * _quantity);
-        return inventory_action_result(true, "Health restored.");
-    }, function(_def) {
-        // No point using more than it takes to fill health.
-        return ceil((global.player.max_health - global.player.health_) / _def.use_amount);
-    });
+    item_effect_register(
+		"restore_fp",
+		function(_def, _quantity) { // Restore player's FP
+	        if (global.player.is_fp_full()) return inventory_action_result(false, "FP is already full.");
+	        global.player.restore_fp(_def.use_amount * _quantity);
+	        return inventory_action_result(true, "FP restored.");
+	    },
+		function(_def) { // No point using more than it takes to fill FP.
+	        return ceil((global.player.max_fp - global.player.fp) / _def.use_amount);
+	    }
+	);
 
-    item_effect_register("restore_fp", function(_def, _quantity) {
-        if (global.player.is_fp_full()) {
-            return inventory_action_result(false, "FP is already full.");
-        }
-
-        global.player.restore_fp(_def.use_amount * _quantity);
-        return inventory_action_result(true, "FP restored.");
-    }, function(_def) {
-        return ceil((global.player.max_fp - global.player.fp) / _def.use_amount);
-    });
-
-    item_effect_register("runes", function(_def, _quantity) {
-        var _total = _def.use_amount * _quantity;
-        global.player.add_runes(_total);
-        return inventory_action_result(true, "Gained " + string(_total) + " runes.");
-    });
+    item_effect_register(
+		"runes",
+		function(_def, _quantity) { // Increase player's runes (no limit)
+	        var _total = _def.use_amount * _quantity;
+	        global.player.add_runes(_total);
+	        return inventory_action_result(true, "Gained " + string(_total) + " runes.");
+		}
+	);
     #endregion
 
     #region Category handlers
-    item_category_register("consumable", item_handler_create(
-        function(_item_id, _def) {
-            return ["Use"];
-        },
-        { Use: item_action_use_consumable },
-        function(_item_id, _def, _action) {
-            if (is_undefined(item_effect_get(_def))) {
-                return "Using this item is not supported yet.";
-            }
+    item_category_register(
+		"consumable",
+		
+		item_handler_create(
+	        function(_item_id, _def) {				// Consumable-specific actions
+	            return ["Use"];
+	        },
+			{ Use: item_action_use_consumable },	// Actions handlers mapping
+			function(_item_id, _def, _action) {		// Always support use
+	            if (is_undefined(item_effect_get(_def))) {
+	                return "Using this item is not supported yet.";
+	            }
 
-            return "";
-        },
-        function(_item_id, _def, _action) {
-            var _effect = item_effect_get(_def);
-            var _max = inventory_count_item(global.player_inventory, _item_id);
+	            return "";
+	        },
+	        function(_item_id, _def, _action) {		// Maximum usage is amount in inventory
+	            var _effect = item_effect_get(_def);
+	            var _max = inventory_count_item(global.player_inventory, _item_id);
 
-            if (is_struct(_effect) && is_callable(_effect.max_uses)) {
-                _max = min(_max, _effect.max_uses(_def));
-            }
+	            if (is_struct(_effect) && is_callable(_effect.max_uses)) {
+	                _max = min(_max, _effect.max_uses(_def));
+	            }
 
-            return _max;
-        }
-    ));
+	            return _max;
+	        }
+			// Non-replacable on use
+		)
+	);
 
+	// (Un)Equippable items
     item_category_register("weapon", item_handler_equipment("weapon", "Weapon"));
     item_category_register("shield", item_handler_equipment("shield", "Shield"));
     item_category_register("armor", item_handler_equipment("armor", "Armor"));

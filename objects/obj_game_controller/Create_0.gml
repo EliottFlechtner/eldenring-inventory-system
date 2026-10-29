@@ -20,7 +20,7 @@ global.player_hotbar = hotbar_create();
 // World pickups will consume this in a later stage.
 global.ground_items = [];
 
-// Create the player's inventory with 24 fixed slots.
+// Create the player's inventory with max capacity fixed slots.
 global.player_inventory = inventory_create(24);
 
 // Add some starting items for later UI development.

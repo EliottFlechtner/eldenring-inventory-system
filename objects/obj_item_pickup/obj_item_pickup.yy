@@ -10,8 +10,8 @@
   "name":"obj_item_pickup",
   "overriddenProperties":[],
   "parent":{
-    "name":"Inventory System",
-    "path":"folders/Inventory System.yy",
+    "name":"Items",
+    "path":"folders/Inventory System/Items.yy",
   },
   "parentObjectId":null,
   "persistent":false,
