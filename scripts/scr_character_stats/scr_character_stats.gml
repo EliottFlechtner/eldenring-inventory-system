@@ -5,27 +5,35 @@
 /// @param {Real} _health The starting health, clamped to the valid range.
 /// @param {Real} _base_attack The player's unequipped attack value.
 /// @param {Real} _base_defense The player's unequipped defense value.
+/// @param {Real} _max_fp The maximum FP value.
+/// @param {Real} _fp The starting FP, clamped to the valid range.
+/// @param {Real} _runes The starting rune count.
 /// @returns {Struct.Player} The initialized player object and its instance methods.
-function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0) constructor {
+function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack = 0, _base_defense = 0, _max_fp = 50, _fp = 50, _runes = 0) constructor {
     name = _name;
     max_health = _max_health;
     health_ = clamp(_health, 0, _max_health);
     base_attack = _base_attack;
     base_defense = _base_defense;
+    max_fp = _max_fp;
+    fp = clamp(_fp, 0, _max_fp);
+    runes = max(_runes, 0);
 
     #region Equipment methods
     // Equipped item IDs. Empty string means no equipment.
     equipment = {
         weapon: "",
-        armor: ""
+        shield: "",
+        armor: "",
+        talisman: ""
     };
 
     /// @function Player.is_equipment_slot(_slot)
     /// @description Check whether a slot accepts equipment.
     /// @param {String} _slot The equipment slot name to validate.
-    /// @returns {Boolean} Whether the slot is weapon or armor.
+    /// @returns {Boolean} Whether the slot exists in the equipment struct.
     static is_equipment_slot = function(_slot) {
-        return _slot == "weapon" || _slot == "armor";
+        return variable_struct_exists(equipment, _slot);
     };
 
     /// @function Player.get_equipped_id(_slot)
@@ -52,7 +60,14 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     /// @param {String} _item_id The item id to check.
     /// @returns {Boolean} Whether the item is currently equipped.
     static is_equipped = function(_item_id) {
-        return _item_id != "" && (equipment.weapon == _item_id || equipment.armor == _item_id);
+        if (_item_id == "") return false;
+
+        var _slots = variable_struct_get_names(equipment);
+        for (var i = 0; i < array_length(_slots); i++) {
+            if (equipment[$ _slots[i]] == _item_id) return true;
+        }
+
+        return false;
     };
 
     /// @function Player.equip(_slot, _item_id)
@@ -79,39 +94,40 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     /// @param {String} _item_id The item id to remove from equipment.
     /// @returns {undefined} No value is returned.
     static unequip_item = function(_item_id) {
-        if (equipment.weapon == _item_id) equipment.weapon = "";
-        if (equipment.armor == _item_id) equipment.armor = "";
+        var _slots = variable_struct_get_names(equipment);
+        for (var i = 0; i < array_length(_slots); i++) {
+            if (equipment[$ _slots[i]] == _item_id) equipment[$ _slots[i]] = "";
+        }
     };
 
     #endregion
 
     #region Character stat methods
+    /// @function Player.get_equipped_stat(_slot, _stat)
+    /// @description Read a numeric stat from the item equipped in a slot.
+    /// @param {String} _slot The equipment slot to query.
+    /// @param {String} _stat The definition field, such as attack or defense.
+    /// @returns {Real} The stat value, or 0 if the slot is empty or lacks the stat.
+    static get_equipped_stat = function(_slot, _stat) {
+        var _def = get_equipped_definition(_slot);
+        if (is_struct(_def) && variable_struct_exists(_def, _stat)) return _def[$ _stat];
+        return 0;
+    };
+
     /// @function Player.get_attack()
     /// @description Calculate attack from the base stat and equipped weapon.
     /// @returns {Real} The total attack value.
     static get_attack = function() {
-        var _attack = base_attack;
-        var _weapon = get_equipped_definition("weapon");
-
-        if (is_struct(_weapon) && variable_struct_exists(_weapon, "attack")) {
-            _attack += _weapon.attack;
-        }
-
-        return _attack;
+        return base_attack + get_equipped_stat("weapon", "attack");
     };
 
     /// @function Player.get_defense()
-    /// @description Calculate defense from the base stat and equipped armor.
+    /// @description Calculate defense from the base stat, equipped armor, and shield.
     /// @returns {Real} The total defense value.
     static get_defense = function() {
-        var _defense = base_defense;
-        var _armor = get_equipped_definition("armor");
-
-        if (is_struct(_armor) && variable_struct_exists(_armor, "defense")) {
-            _defense += _armor.defense;
-        }
-
-        return _defense;
+        return base_defense
+            + get_equipped_stat("armor", "defense")
+            + get_equipped_stat("shield", "defense");
     };
 
     /// @function Player.is_health_full()
@@ -129,6 +145,29 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
         var _before = health_;
         health_ = min(health_ + _amount, max_health);
         return health_ - _before;
+    };
+
+    /// @function Player.is_fp_full()
+    /// @returns {Boolean} Whether current FP has reached its maximum.
+    static is_fp_full = function() {
+        return fp >= max_fp;
+    };
+
+    /// @function Player.restore_fp(_amount)
+    /// @param {Real} _amount The requested amount of FP to restore.
+    /// @returns {Real} The amount of FP actually restored.
+    static restore_fp = function(_amount) {
+        var _before = fp;
+        fp = min(fp + _amount, max_fp);
+        return fp - _before;
+    };
+
+    /// @function Player.add_runes(_amount)
+    /// @param {Real} _amount The runes to add.
+    /// @returns {Real} The new rune total.
+    static add_runes = function(_amount) {
+        runes += _amount;
+        return runes;
     };
     #endregion
 }

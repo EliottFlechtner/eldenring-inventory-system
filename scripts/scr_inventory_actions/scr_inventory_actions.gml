@@ -26,15 +26,10 @@ function inventory_get_actions(_item_id) {
         return _actions;
     }
 
-    if (_def.category == "consumable") {
-        array_push(_actions, "Use");
-    }
+    var _handler = item_category_get_handler(_def.category);
 
-    if (global.player.is_equipment_slot(_def.category)) {
-        var _equipment_slot = _def.category;
-        var _equipped_id = global.player.get_equipped_id(_equipment_slot);
-
-        array_push(_actions, _equipped_id == _item_id ? "Unequip" : "Equip");
+    if (is_struct(_handler)) {
+        _actions = _handler.get_actions(_item_id, _def);
     }
 
     array_push(_actions, "Drop");
@@ -63,58 +58,24 @@ function inventory_execute_action(_item_id, _action) {
         return inventory_action_result(false, "Item not in inventory.");
     }
 
-    switch (_action) {
-        case "Use":
-            if (_def.category != "consumable") {
-                return inventory_action_result(false, "This item cannot be used.");
-            }
+    var _handler = item_category_get_handler(_def.category);
 
-            if (!variable_struct_exists(_def, "use_effect")) {
-                return inventory_action_result(false, "This item has no use effect.");
-            }
-
-            if (_def.use_effect == "heal") {
-                if (global.player.is_health_full()) {
-                    return inventory_action_result(false, "Health is already full.");
-                }
-
-                if (!inventory_remove(_inv, _item_id, 1)) {
-                    return inventory_action_result(false, "Could not consume item.");
-                }
-
-                global.player.heal(_def.use_amount);
-
-                return inventory_action_result(true, "Health restored.");
-            }
-
-            return inventory_action_result(false, "Unknown item effect.");
-
-        case "Equip":
-        case "Unequip":
-            if (!global.player.is_equipment_slot(_def.category)) {
-                var _error_message = _action == "Equip"
-                    ? "This item cannot be equipped."
-                    : "Item is not equipped.";
-                return inventory_action_result(false, _error_message);
-            }
-
-            var _equipment_slot = _def.category;
-            var _equipment_name = _equipment_slot == "weapon" ? "Weapon" : "Armor";
-
-            if (_action == "Equip") {
-                global.player.equip(_equipment_slot, _item_id);
-                return inventory_action_result(true, _equipment_name + " equipped.");
-            }
-
-            if (global.player.get_equipped_id(_equipment_slot) != _item_id) {
-                return inventory_action_result(false, "Item is not equipped.");
-            }
-
-            global.player.unequip(_equipment_slot);
-            return inventory_action_result(true, _equipment_name + " unequipped.");
+    if (!is_struct(_handler)) {
+        return inventory_action_result(false, "This item has no available actions.");
     }
 
-    return inventory_action_result(false, "Unknown action.");
+    // Only actions the handler currently offers may run (e.g. no Unequip for unequipped gear).
+    if (!array_contains(_handler.get_actions(_item_id, _def), _action)) {
+        return inventory_action_result(false, "This item cannot be used that way.");
+    }
+
+    var _fn = _handler.actions[$ _action];
+
+    if (is_undefined(_fn)) {
+        return inventory_action_result(false, "Unknown action.");
+    }
+
+    return _fn(_item_id, _def);
 }
 #endregion
 

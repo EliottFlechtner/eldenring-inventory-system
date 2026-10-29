@@ -395,14 +395,26 @@ if (is_struct(_selected)) {
         );
 
         draw_text(
+            _detail_x + 170,
+            _stats_y + 48,
+            "FP: " + string(global.player.fp) + " / " + string(global.player.max_fp)
+        );
+
+        draw_text(
             _detail_x,
             _stats_y + 70,
-            "Weapon: " + _weapon_name
+            "Runes: " + string(global.player.runes)
         );
 
         draw_text(
             _detail_x,
             _stats_y + 92,
+            "Weapon: " + _weapon_name
+        );
+
+        draw_text(
+            _detail_x,
+            _stats_y + 114,
             "Armor: " + _armor_name
         );
     }

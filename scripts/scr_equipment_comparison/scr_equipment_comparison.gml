@@ -17,37 +17,34 @@ function equipment_get_comparison(_item_id) {
     };
 
     #region Select comparable stat
+    // Which stat each equipment category affects.
     var _stat_field = "";
 
-    if (_def.category == "weapon") {
-        _stat_field = "attack";
-        _comparison.stat_name = "Attack";
-        _comparison.current_value = global.player.get_attack();
+    switch (_def.category) {
+        case "weapon":
+            _stat_field = "attack";
+            _comparison.stat_name = "Attack";
+            _comparison.current_value = global.player.get_attack();
+            break;
+        case "armor":
+        case "shield":
+            _stat_field = "defense";
+            _comparison.stat_name = "Defense";
+            _comparison.current_value = global.player.get_defense();
+            break;
+        default:
+            return _comparison;
     }
-    else if (_def.category == "armor") {
-        _stat_field = "defense";
-        _comparison.stat_name = "Defense";
-        _comparison.current_value = global.player.get_defense();
-    }
-    else {
-        return _comparison;
-    }
-	#endregion
+    #endregion
 
     #region Calculate candidate stat
-    var _new_bonus = 0;
-
-    if (variable_struct_exists(_def, _stat_field)) {
-        _new_bonus = variable_struct_get(_def, _stat_field);
-    }
-
-    var _base_stat = _stat_field == "attack"
-        ? global.player.base_attack
-        : global.player.base_defense;
+    // Replace whatever the slot currently provides with the candidate's bonus.
+    var _new_bonus = variable_struct_exists(_def, _stat_field) ? _def[$ _stat_field] : 0;
+    var _old_bonus = global.player.get_equipped_stat(_def.category, _stat_field);
 
     _comparison.valid = true;
-    _comparison.new_value = _base_stat + _new_bonus;
+    _comparison.new_value = _comparison.current_value - _old_bonus + _new_bonus;
     #endregion
-	
+
     return _comparison;
 }

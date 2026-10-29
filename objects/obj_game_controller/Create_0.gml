@@ -6,8 +6,11 @@ game_set_speed(60, gamespeed_fps);
 // Also creates global.inventory_templates.
 item_database_init();
 
-// Create the player object (health, base stats, equipment).
-global.player = new Player("Hero", 100, 65, 5, 0);
+// Register per-category item handlers and consumable effects.
+item_handlers_init();
+
+// Create the player object (health, base stats, FP, runes, equipment).
+global.player = new Player("Hero", 100, 65, 5, 0, 50, 30, 0);
 
 // Create the player's hotbar
 global.player_hotbar = hotbar_create();

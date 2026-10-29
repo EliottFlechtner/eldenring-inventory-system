@@ -42,6 +42,7 @@
     {"id":{"name":"scr_inventory_tests","path":"scripts/scr_inventory_tests/scr_inventory_tests.yy",},},
     {"id":{"name":"scr_inventory_ui_helpers","path":"scripts/scr_inventory_ui_helpers/scr_inventory_ui_helpers.yy",},},
     {"id":{"name":"scr_item_database","path":"scripts/scr_item_database/scr_item_database.yy",},},
+    {"id":{"name":"scr_item_handlers","path":"scripts/scr_item_handlers/scr_item_handlers.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
