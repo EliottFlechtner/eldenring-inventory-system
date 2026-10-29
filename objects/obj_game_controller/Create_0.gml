@@ -28,7 +28,7 @@ var _random_config = {
     min_qty: 1,                                    // stackable quantity range
     //max_qty: 5,
     unique: true,                                  // each item id at most once
-    //max_items: global.player_inventory.capacity,   // omit to fill until full
+    max_items: global.player_inventory.capacity-10,   // omit to fill until full
     clear: true,                                   // empty the inventory first
 };
 inventory_fill_from_config(global.player_inventory, _random_config);

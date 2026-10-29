@@ -5,15 +5,10 @@
 /// @param {Real} _capacity The requested number of slots; invalid values default to 24 and values below one are raised to one.
 /// @returns {Struct.Inventory} An inventory containing its capacity and empty slot array.
 function inventory_create(_capacity) {
-    if (!is_real(_capacity)) {
-        _capacity = 24;
-    }
+    if (!is_real(_capacity)) _capacity = global.player_inventory.capacity;
 
     _capacity = floor(_capacity);
-
-    if (_capacity < 1) {
-        _capacity = 1;
-    }
+    if (_capacity < 1) _capacity = 1;
 
     return {
         capacity: _capacity,
@@ -32,13 +27,9 @@ function inventory_count_item(_inventory, _item_id) {
     if (!is_struct(_inventory)) return 0;
 
     var _total = 0;
-
     for (var i = 0; i < _inventory.capacity; i++) {
         var _slot = _inventory.slots[i];
-
-        if (is_struct(_slot) && _slot.item_id == _item_id) {
-            _total += _slot.quantity;
-        }
+        if (is_struct(_slot) && _slot.item_id == _item_id) _total += _slot.quantity;
     }
 
     return _total;
@@ -55,10 +46,7 @@ function inventory_find_slot(_inventory, _item_id) {
 
     for (var i = 0; i < _inventory.capacity; i++) {
         var _slot = _inventory.slots[i];
-
-        if (is_struct(_slot) && _slot.item_id == _item_id) {
-            return i;
-        }
+        if (is_struct(_slot) && _slot.item_id == _item_id) return i;
     }
 
     return -1;
@@ -73,9 +61,7 @@ function inventory_find_empty_slot(_inventory) {
     if (!is_struct(_inventory)) return -1;
 
     for (var i = 0; i < _inventory.capacity; i++) {
-        if (is_undefined(_inventory.slots[i])) {
-            return i;
-        }
+        if (is_undefined(_inventory.slots[i])) return i;
     }
 
     return -1;
@@ -91,6 +77,7 @@ function inventory_find_empty_slot(_inventory) {
 /// @param {Real} _amount The positive whole-number quantity to add.
 /// @returns {Real} The quantity added; any remainder stays with the caller.
 function inventory_add(_inventory, _item_id, _amount) {
+	// Validate the arguments
     if (!is_struct(_inventory)) return 0;
     if (!is_string(_item_id)) return 0;
     if (!is_real(_amount)) return 0;
@@ -125,12 +112,11 @@ function inventory_add(_inventory, _item_id, _amount) {
 
     // Then, use empty slots.
     while (_remaining > 0) {
+		// Store the rest if there is empty slots left
         var _empty = inventory_find_empty_slot(_inventory);
-
         if (_empty == -1) break;
 
         var _transfer = min(_definition.max_stack, _remaining);
-
         _inventory.slots[_empty] = {
             item_id: _item_id,
             quantity: _transfer
@@ -159,28 +145,23 @@ function inventory_remove(_inventory, _item_id, _amount) {
     if (_amount <= 0 || floor(_amount) != _amount) return false;
 
     // Validate first so a failed removal changes nothing.
-    if (inventory_count_item(_inventory, _item_id) < _amount) {
-        return false;
-    }
+    if (inventory_count_item(_inventory, _item_id) < _amount) return false;
 
     var _remaining = _amount;
-
     for (var i = 0; i < _inventory.capacity; i++) {
         var _slot = _inventory.slots[i];
 
         if (is_struct(_slot) && _slot.item_id == _item_id) {
+			// Withdraw as much as possible from curent slot
             var _take = min(_slot.quantity, _remaining);
-
             _slot.quantity -= _take;
             _remaining -= _take;
 
-            if (_slot.quantity <= 0) {
-                _inventory.slots[i] = undefined;
-            }
-
-            if (_remaining <= 0) {
-                return true;
-            }
+			// Reset the inventory slot
+            if (_slot.quantity <= 0) _inventory.slots[i] = undefined;
+            
+			// Successfully removed all the items
+			if (_remaining <= 0) return true;
         }
     }
 
@@ -196,11 +177,10 @@ function inventory_remove(_inventory, _item_id, _amount) {
 /// @param {Real} _index The zero-based slot index.
 /// @returns {Struct.InventorySlot|undefined} The slot data, or undefined for invalid or empty slots.
 function inventory_get_slot(_inventory, _index) {
+	// Validate arguments
     if (!is_struct(_inventory)) return undefined;
     if (!is_real(_index)) return undefined;
-    if (_index < 0 || _index >= _inventory.capacity) {
-        return undefined;
-    }
+    if (_index < 0 || _index >= _inventory.capacity) return undefined;
 
     return _inventory.slots[_index];
 }

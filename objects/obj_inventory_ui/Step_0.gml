@@ -60,8 +60,8 @@ if (ui_confirm_open) {
 
        if (ui_pending_action == "Drop") {
 		    // Temporary fallback until a player object exists.
-		    var _drop_x = room_width * 0.5;
-		    var _drop_y = room_height * 0.5;
+		    var _drop_x = irandom_range(100, room_width);
+		    var _drop_y = irandom_range(100, room_height);
 
 		    _result = inventory_drop_item(
 		        ui_pending_item,
