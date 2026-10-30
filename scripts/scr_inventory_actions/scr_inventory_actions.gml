@@ -154,7 +154,25 @@ function inventory_execute_action(_item_id, _action, _quantity = 1, _replace_id 
 
     _quantity = clamp(_quantity, 1, inventory_get_action_max_quantity(_item_id, _action));
 
-    return _fn(_item_id, _def, _quantity, _replace_id);
+    // Run inside a transaction: if the action fails or throws, everything it changed is restored, so a
+    // failed action never costs the player items, FP, HP, runes, or equipment.
+    var _snapshot = inventory_tx_begin();
+    var _result;
+
+    try {
+        _result = _fn(_item_id, _def, _quantity, _replace_id);
+    }
+    catch (_error) {
+        _result = inventory_action_result(false, "Action failed: " + string(_error.message));
+    }
+
+    if (!is_struct(_result) || !_result.ok) {
+        inventory_tx_rollback(_snapshot);
+
+        if (!is_struct(_result)) _result = inventory_action_result(false, "Action failed.");
+    }
+
+    return _result;
 }
 #endregion
 

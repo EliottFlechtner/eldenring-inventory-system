@@ -105,7 +105,10 @@ function inventory_add(_inventory, _item_id, _amount) {
                     _added += _transfer;
                 }
 
-                if (_remaining <= 0) return _added;
+                if (_remaining <= 0) {
+                    inventory_notify_changed(_inventory);
+                    return _added;
+                }
             }
         }
     }
@@ -127,6 +130,8 @@ function inventory_add(_inventory, _item_id, _amount) {
 
         // Non-stackable items have a maximum stack of one.
     }
+
+    if (_added > 0) inventory_notify_changed(_inventory);
 
     return _added;
 }
@@ -161,10 +166,14 @@ function inventory_remove(_inventory, _item_id, _amount) {
             if (_slot.quantity <= 0) _inventory.slots[i] = undefined;
             
 			// Successfully removed all the items
-			if (_remaining <= 0) return true;
+			if (_remaining <= 0) {
+                inventory_notify_changed(_inventory);
+                return true;
+            }
         }
     }
 
+    inventory_notify_changed(_inventory);
     return true;
 }
 #endregion

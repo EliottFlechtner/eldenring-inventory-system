@@ -30,6 +30,7 @@ ui_last_action = "";
 
 // Menus and dialogs share one state machine (see scr_inventory_ui_state).
 inventory_ui_state_init(id);
+inventory_ui_subscribe(id);
 
 // Dialog sizes.
 ui_replace_width = 340;

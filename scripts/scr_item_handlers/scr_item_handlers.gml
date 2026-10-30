@@ -25,6 +25,9 @@ function item_handlers_init() {
     global.item_category_handlers = {};
     global.item_effect_handlers = {};
 
+    // Weapon skills and their costs live in scr_item_skills.
+    item_skills_init();
+
     #region Consumable effects
     item_effect_register(
 		"heal",
@@ -100,7 +103,7 @@ function item_handlers_init() {
 	);
 
 	// (Un)Equippable items
-    item_category_register("weapon", item_handler_equipment("weapon", "Weapon"));
+    item_category_register("weapon", item_handler_weapon());
     item_category_register("shield", item_handler_equipment("shield", "Shield"));
     item_category_register("armor", item_handler_equipment("armor", "Armor"));
     item_category_register("talisman", item_handler_talisman());
@@ -109,7 +112,7 @@ function item_handlers_init() {
     item_category_register("material", item_handler_placeholder("Upgrade materials are not supported yet."));
     item_category_register("ammo", item_handler_placeholder("Ammunition is not supported yet."));
     item_category_register("key", item_handler_placeholder("Key items are not supported yet."));
-    item_category_register("spirit_ash", item_handler_placeholder("Spirit summoning is not supported yet."));
+    item_category_register("spirit_ash", item_handler_spirit_ash());
     #endregion
 }
 
@@ -283,9 +286,17 @@ function item_action_use_consumable(_item_id, _def, _quantity) {
         return inventory_action_result(false, "This item cannot be used yet.");
     }
 
+    // Check ownership before the effect runs, and consume only after it succeeds. If consuming still fails,
+    // the failure result makes inventory_execute_action roll the effect back.
+    if (inventory_count_item(global.player_inventory, _item_id) < _quantity) {
+        return inventory_action_result(false, "Not enough items.");
+    }
+
     var _result = _effect.apply(_def, _quantity);
 
-    if (_result.ok && !inventory_remove(global.player_inventory, _item_id, _quantity)) {
+    if (!_result.ok) return _result;
+
+    if (!inventory_remove(global.player_inventory, _item_id, _quantity)) {
         return inventory_action_result(false, "Could not consume item.");
     }
 

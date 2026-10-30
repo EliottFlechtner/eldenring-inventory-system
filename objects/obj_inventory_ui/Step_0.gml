@@ -127,14 +127,16 @@ if (keyboard_check(vk_control)) {
             ui_selected_slot
         );
 
-        if (is_struct(_selected_slot) && hotbar_assign(
-            global.player_hotbar,
-            assign_slot,
-            _selected_slot.item_id
-        )) {
+        if (is_struct(_selected_slot)) {
+            var _assign_result = hotbar_assign_result(
+                global.player_hotbar,
+                assign_slot,
+                _selected_slot.item_id
+            );
+
             inventory_ui_message_show(
                 id,
-                "Quick slot assigned.",
+                _assign_result.message,
                 ui_message_duration_brief
             );
         }

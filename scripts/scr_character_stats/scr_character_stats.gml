@@ -34,6 +34,12 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     // Worn talisman item ids; the count is capped by max_talismans.
     talismans = [];
 
+    // Id of the currently summoned spirit ash, or an empty string.
+    summon = "";
+
+    // Derived stats, refreshed whenever inventory, equipment, or stats change (see scr_inventory_events).
+    derived = { attack: 0, defense: 0, equip_load: 0 };
+
     /// @function Player.is_equipment_slot(_slot)
     /// @description Check whether a slot accepts equipment.
     /// @param {String} _slot The equipment slot name to validate.
@@ -95,6 +101,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     static equip_talisman = function(_item_id) {
         if (is_talisman_equipped(_item_id) || !can_equip_talisman()) return false;
         array_push(talismans, _item_id);
+        inventory_event_emit(INV_EVENT_EQUIPMENT);
         return true;
     };
 
@@ -105,6 +112,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
         var _index = array_get_index(talismans, _item_id);
         if (_index < 0) return false;
         array_delete(talismans, _index, 1);
+        inventory_event_emit(INV_EVENT_EQUIPMENT);
         return true;
     };
 
@@ -116,6 +124,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     static equip = function(_slot, _item_id) {
         if (!is_equipment_slot(_slot)) return false;
         equipment[$ _slot] = _item_id;
+        inventory_event_emit(INV_EVENT_EQUIPMENT);
         return true;
     };
 
@@ -137,6 +146,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
         for (var i = 0; i < array_length(_slots); i++) {
             if (equipment[$ _slots[i]] == _item_id) equipment[$ _slots[i]] = "";
         }
+        inventory_event_emit(INV_EVENT_EQUIPMENT);
     };
 
     #endregion
@@ -222,6 +232,7 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     static heal = function(_amount) {
         var _before = health_;
         health_ = min(health_ + _amount, max_health);
+        inventory_event_emit(INV_EVENT_STATS);
         return health_ - _before;
     };
 
@@ -237,7 +248,39 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     static restore_fp = function(_amount) {
         var _before = fp;
         fp = min(fp + _amount, max_fp);
+        inventory_event_emit(INV_EVENT_STATS);
         return fp - _before;
+    };
+
+    /// @function Player.spend_fp(_amount)
+    /// @param {Real} _amount The FP to spend.
+    /// @returns {Boolean} Whether there was enough FP; nothing is spent otherwise.
+    static spend_fp = function(_amount) {
+        if (_amount < 0 || fp < _amount) return false;
+        fp -= _amount;
+        inventory_event_emit(INV_EVENT_STATS);
+        return true;
+    };
+
+    /// @function Player.spend_health(_amount)
+    /// @description Pay a health cost. It can never kill the player, so health must stay above zero.
+    /// @param {Real} _amount The health to spend.
+    /// @returns {Boolean} Whether the cost was paid.
+    static spend_health = function(_amount) {
+        if (_amount < 0 || health_ <= _amount) return false;
+        health_ -= _amount;
+        inventory_event_emit(INV_EVENT_STATS);
+        return true;
+    };
+
+    /// @function Player.spend_runes(_amount)
+    /// @param {Real} _amount The runes to spend.
+    /// @returns {Boolean} Whether there were enough runes.
+    static spend_runes = function(_amount) {
+        if (_amount < 0 || runes < _amount) return false;
+        runes -= _amount;
+        inventory_event_emit(INV_EVENT_STATS);
+        return true;
     };
 
     /// @function Player.add_runes(_amount)
@@ -245,7 +288,18 @@ function Player(_name = "Player", _max_health = 100, _health = 100, _base_attack
     /// @returns {Real} The new rune total.
     static add_runes = function(_amount) {
         runes += _amount;
+        inventory_event_emit(INV_EVENT_STATS);
         return runes;
     };
+
+    /// @function Player.refresh_derived()
+    /// @description Recompute cached derived stats from the current equipment.
+    static refresh_derived = function() {
+        derived.attack = get_attack();
+        derived.defense = get_defense();
+        derived.equip_load = get_equip_load();
+    };
     #endregion
+
+    if (variable_global_exists("item_db")) refresh_derived();
 }

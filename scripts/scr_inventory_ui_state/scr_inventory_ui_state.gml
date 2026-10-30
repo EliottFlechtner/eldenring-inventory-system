@@ -67,6 +67,50 @@ function inventory_ui_reset(_ui) {
 }
 
 
+#region Event-driven refresh
+/// @function inventory_ui_refresh(_ui)
+/// @description Bring open menus and dialogs back in line with the game state after inventory, equipment,
+/// or stat changes: close them if their item is gone, otherwise rebuild the action list and limits.
+/// @param {Id.Instance|Struct} _ui The UI instance.
+function inventory_ui_refresh(_ui) {
+    if (_ui.ui_state == InventoryUIState.GRID) return;
+
+    var _c = _ui.ui_ctx;
+
+    if (inventory_count_item(global.player_inventory, _c.item) <= 0) {
+        inventory_ui_reset(_ui);
+        return;
+    }
+
+    if (_ui.ui_state == InventoryUIState.ACTIONS) {
+        _ui.ui_actions = inventory_get_actions(_c.item);
+        _ui.ui_action_selected = clamp(_ui.ui_action_selected, 0, max(0, array_length(_ui.ui_actions) - 1));
+        return;
+    }
+
+    // A quantity dialog must not offer more than the action can now apply.
+    if (_ui.ui_state == InventoryUIState.QUANTITY) {
+        _c.quantity_max = inventory_get_action_max_quantity(_c.item, _c.action);
+        _c.quantity = clamp(_c.quantity, 1, _c.quantity_max);
+    }
+}
+
+
+/// @function inventory_ui_subscribe(_ui)
+/// @description Refresh the UI whenever inventory, equipment, stats, or quick slots change.
+/// @param {Id.Instance} _ui The UI instance.
+function inventory_ui_subscribe(_ui) {
+    var _listener = method({ ui: _ui }, function(_data) {
+        if (instance_exists(ui)) inventory_ui_refresh(ui);
+    });
+
+    inventory_event_subscribe(INV_EVENT_INVENTORY, _listener);
+    inventory_event_subscribe(INV_EVENT_EQUIPMENT, _listener);
+    inventory_event_subscribe(INV_EVENT_STATS, _listener);
+    inventory_event_subscribe(INV_EVENT_HOTBAR, _listener);
+}
+#endregion
+
 #region Opening and choosing actions
 /// @function inventory_ui_open_actions(_ui, _item_id)
 /// @description Open the action menu for an item.

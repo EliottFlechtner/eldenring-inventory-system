@@ -165,9 +165,7 @@ function save_apply(_data) {
         var _id = _saved_quick[i];
         if (_id == "") continue;
 
-        var _q_def = is_string(_id) ? item_definition_get(_id) : undefined;
-
-        if (is_undefined(_q_def) || _q_def.category != "consumable" || array_contains(_new_hotbar, _id)) {
+        if (!hotbar_can_assign(_id) || array_contains(_new_hotbar, _id)) {
             array_push(_warnings, "Cleared invalid quick slot " + string(i + 1) + ".");
             continue;
         }
@@ -199,6 +197,14 @@ function save_apply(_data) {
     _player.health_ = clamp(_health, 0, _player.max_health);
     _player.fp = clamp(_fp, 0, _player.max_fp);
     _player.runes = max(0, floor(_runes));
+
+    // Summons are not saved; the loaded state starts without one.
+    _player.summon = "";
+
+    inventory_event_emit(INV_EVENT_INVENTORY);
+    inventory_event_emit(INV_EVENT_EQUIPMENT);
+    inventory_event_emit(INV_EVENT_STATS);
+    inventory_event_emit(INV_EVENT_HOTBAR);
 
     var _result = inventory_action_result(true, array_length(_warnings) > 0
         ? "Game loaded with " + string(array_length(_warnings)) + " warning(s)."

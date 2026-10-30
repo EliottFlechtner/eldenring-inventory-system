@@ -50,6 +50,11 @@ function inventory_run_tests() {
     inventory_test_equip_load();
     inventory_test_save_load();
     inventory_test_validation();
+    inventory_test_events();
+    inventory_test_transactions();
+    inventory_test_quick_slots();
+    inventory_test_skills();
+    inventory_test_spirit_ash();
     inventory_test_ui_state();
 
     global.player = _saved_player;
@@ -525,7 +530,7 @@ function inventory_test_validation() {
         { id: "no_handler", name: "D", category: "mystery", description: "", stackable: false, max_stack: 1, icon: -1 }
     ];
     var _built = item_database_build(_defs);
-    var _report = item_validation_collect(_defs, _built.duplicates, { bad: ["ghost_item"] });
+    var _report = item_validation_collect(_defs, _built.duplicates, { bad: [["ghost_item", 1]] });
     var _text = "";
     for (var i = 0; i < array_length(_report.errors); i++) _text += _report.errors[i] + "\n";
     var _warn = "";
@@ -539,6 +544,148 @@ function inventory_test_validation() {
 }
 #endregion
 
+
+#region Events and transactions
+function inventory_test_events() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "uchigatana", 1);
+    inventory_add(_inv, "moonveil", 1);
+
+    var _base_attack = _p.derived.attack;
+    inventory_execute_action("uchigatana", "Equip");
+    inventory_test_assert(_p.derived.attack > _base_attack, "Derived attack refreshes after equipping");
+
+    var _count = { n: 0 };
+    var _fn = inventory_event_subscribe(INV_EVENT_STATS, method(_count, function(_d) { n++; }));
+    _p.add_runes(10);
+    inventory_test_assert(_count.n == 1, "Stat changes emit a stats event");
+    inventory_event_unsubscribe(INV_EVENT_STATS, _fn);
+    _p.add_runes(10);
+    inventory_test_assert(_count.n == 1, "Unsubscribed listeners are not called");
+
+    inventory_remove(_inv, "uchigatana", 1);
+    inventory_test_assert(_p.get_equipped_id("weapon") != "uchigatana", "Removing an equipped item unequips it");
+    inventory_test_assert(_p.derived.attack == _base_attack, "Derived attack refreshes after the item is gone");
+}
+
+
+function inventory_test_transactions() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "flask_crimson_tears", 3);
+    _p.fp = 30;
+    _p.runes = 100;
+
+    var _snap = inventory_tx_begin();
+    inventory_remove(_inv, "flask_crimson_tears", 3);
+    _p.spend_fp(20);
+    _p.runes = 0;
+    inventory_tx_rollback(_snap);
+    inventory_test_assert(inventory_count_item(_inv, "flask_crimson_tears") == 3 && _p.fp == 30 && _p.runes == 100, "Rollback restores items, FP, and runes");
+
+    // A failed Use must not consume anything.
+    _p.health_ = _p.max_health;
+    var _r = inventory_execute_action("flask_crimson_tears", "Use");
+    inventory_test_assert(!_r.ok && inventory_count_item(_inv, "flask_crimson_tears") == 3, "A failed effect does not consume the item");
+}
+#endregion
+
+
+#region Quick slots
+function inventory_test_quick_slots() {
+    inventory_test_reset();
+    var _hb = global.player_hotbar;
+
+    hotbar_assign(_hb, 0, "flask_crimson_tears");
+    hotbar_assign(_hb, 1, "flask_cerulean_tears");
+
+    var _r = hotbar_assign_result(_hb, 1, "flask_crimson_tears");
+    inventory_test_assert(_r.ok && _hb.slots[1] == "flask_crimson_tears" && _hb.slots[0] == "flask_cerulean_tears", "Assigning to an occupied slot swaps the two items");
+
+    _r = hotbar_assign_result(_hb, 1, "flask_crimson_tears");
+    inventory_test_assert(!_r.ok, "Assigning an item to its own slot is rejected");
+
+    _r = hotbar_assign_result(_hb, 3, "flask_crimson_tears");
+    inventory_test_assert(_r.ok && _hb.slots[3] == "flask_crimson_tears" && _hb.slots[1] == "", "Moving to an empty slot vacates the old one");
+
+    _r = hotbar_assign_result(_hb, 0, "golden_rune_1");
+    inventory_test_assert(_r.ok && _hb.slots[0] == "golden_rune_1" && array_get_index(_hb.slots, "flask_cerulean_tears") == -1, "A new item replaces the slot occupant");
+
+    inventory_test_assert(hotbar_assign(_hb, 2, "lone_wolf_ashes"), "Spirit ashes can be assigned");
+    inventory_test_assert(!hotbar_assign(_hb, 4, "golden_rune_1"), "Out-of-range slots are rejected");
+
+    // Out-of-stock items stay in their slot, and can still be swapped or replaced.
+    inventory_test_assert(!hotbar_use(_hb, 0).ok && _hb.slots[0] == "golden_rune_1", "Using an out-of-stock slot keeps the assignment");
+    inventory_test_assert(hotbar_assign(_hb, 3, "golden_rune_1") && _hb.slots[3] == "golden_rune_1" && _hb.slots[0] == "flask_crimson_tears", "An out-of-stock item swaps like any other");
+    inventory_test_assert(hotbar_assign(_hb, 3, "flask_cerulean_tears") && _hb.slots[3] == "flask_cerulean_tears", "An out-of-stock slot can be replaced");
+}
+#endregion
+
+
+#region Weapon skills
+function inventory_test_skills() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "uchigatana", 1);
+    inventory_test_assert(!array_contains(inventory_get_actions("uchigatana"), "Weapon Skill"), "Skill is not offered while unequipped");
+
+    inventory_execute_action("uchigatana", "Equip");
+    inventory_test_assert(array_contains(inventory_get_actions("uchigatana"), "Weapon Skill"), "Skill is offered once equipped");
+
+    _p.fp = 30;
+    var _r = inventory_execute_action("uchigatana", "Weapon Skill");
+    inventory_test_assert(_r.ok && _p.fp == 20, "Weapon skill spends FP");
+
+    _p.fp = 5;
+    inventory_test_assert(inventory_get_action_unsupported_reason("uchigatana", "Weapon Skill") != "", "Skill is grayed out without enough FP");
+    _r = inventory_execute_action("uchigatana", "Weapon Skill");
+    inventory_test_assert(!_r.ok && _p.fp == 5, "Skill fails without spending when FP is short");
+}
+#endregion
+
+
+#region Spirit ashes
+function inventory_test_spirit_ash() {
+    inventory_test_reset();
+    var _inv = global.player_inventory;
+    var _p = global.player;
+
+    inventory_add(_inv, "lone_wolf_ashes", 1);
+    inventory_add(_inv, "mimic_tear_ashes", 1);
+
+    _p.fp = 10;
+    inventory_test_assert(inventory_get_action_unsupported_reason("lone_wolf_ashes", "Use") != "", "Ash is grayed out without enough FP");
+
+    _p.fp = 50;
+    var _r = inventory_execute_action("lone_wolf_ashes", "Use");
+    inventory_test_assert(_r.ok && _p.fp == 30 && _p.summon == "lone_wolf_ashes", "Summoning pays the cost and sets the summon");
+    inventory_test_assert(inventory_count_item(_inv, "lone_wolf_ashes") == 1, "Summoning does not consume the ash");
+    inventory_test_assert(array_contains(inventory_get_actions("lone_wolf_ashes"), "Dismiss"), "A summoned ash offers Dismiss");
+    inventory_test_assert(inventory_get_action_unsupported_reason("mimic_tear_ashes", "Use") != "", "Only one spirit can be summoned");
+
+    _r = inventory_execute_action("lone_wolf_ashes", "Dismiss");
+    inventory_test_assert(_r.ok && _p.summon == "", "Dismiss clears the summon");
+
+    _p.fp = 50;
+    _p.health_ = 20;
+    _r = inventory_execute_action("mimic_tear_ashes", "Use");
+    inventory_test_assert(!_r.ok && _p.fp == 50 && _p.health_ == 20, "An HP cost cannot kill and nothing is spent on failure");
+
+    _p.health_ = 60;
+    _r = inventory_execute_action("mimic_tear_ashes", "Use");
+    inventory_test_assert(_r.ok && _p.fp == 15 && _p.health_ == 40, "Multi-resource costs are all paid");
+
+    inventory_remove(_inv, "mimic_tear_ashes", 1);
+    inventory_test_assert(_p.summon == "", "Losing the ash ends the summon");
+}
+#endregion
 
 #region UI state machine
 function inventory_test_ui_state() {

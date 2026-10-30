@@ -11,6 +11,8 @@ function inventory_clear(_inventory) {
     for (var i = 0; i < _inventory.capacity; i++) {
         _inventory.slots[i] = undefined;
     }
+
+    inventory_notify_changed(_inventory);
 }
 
 #region Random fill

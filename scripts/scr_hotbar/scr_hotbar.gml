@@ -10,35 +10,73 @@ function hotbar_create() {
 }
 
 
-/// @function hotbar_assign(_hotbar, _slot, _item_id)
-/// @description Assign a valid consumable item to an unoccupied quick slot.
-/// @param {Struct.Hotbar} _hotbar The hotbar to update.
-/// @param {Real} _slot The zero-based quick-slot index.
-/// @param {String} _item_id The consumable item id to assign.
-/// @returns {Boolean} Whether the item was assigned successfully.
-function hotbar_assign(_hotbar, _slot, _item_id) {
-    if (_slot < 0 || _slot >= _hotbar.slot_count) {
-        return false;
-    }
+/// @function hotbar_can_assign(_item_id)
+/// @description Whether an item may sit in a quick slot: consumables and spirit ashes.
+/// @param {String} _item_id The item id to check.
+/// @returns {Boolean} True for assignable items.
+function hotbar_can_assign(_item_id) {
+    var _def = item_definition_get(_item_id);
 
-    var def = item_definition_get(_item_id);
+    if (is_undefined(_def)) return false;
 
-    // Only assign valid consumable items.
-    if (is_undefined(def)) return false;
-    if (def.category != "consumable") return false;
-
-    // An item can only be assigned to one quick slot.
-    for (var i = 0; i < _hotbar.slot_count; i++) {
-        if (i != _slot && _hotbar.slots[i] == _item_id) {
-            return false;
-        }
-    }
-    // TODO, review what should happen when 2 stacks of same item are wanted to be assigned as multiple quickslots
-
-    _hotbar.slots[_slot] = _item_id;
-    return true;
+    return _def.category == "consumable" || _def.category == "spirit_ash";
 }
 
+
+/// @function hotbar_assign_result(_hotbar, _slot, _item_id)
+/// @description Put an item in a quick slot, handling conflicts. An item lives in at most one slot:
+/// assigning one that is already in another slot moves it, and swaps with whatever the target slot held.
+/// @param {Struct.Hotbar} _hotbar The hotbar to update.
+/// @param {Real} _slot The zero-based quick-slot index.
+/// @param {String} _item_id The item id to assign.
+/// @returns {Struct.ActionResult} Whether the hotbar changed, with a message describing what happened.
+function hotbar_assign_result(_hotbar, _slot, _item_id) {
+    if (!is_real(_slot) || _slot < 0 || _slot >= _hotbar.slot_count || floor(_slot) != _slot) {
+        return inventory_action_result(false, "Invalid quick slot.");
+    }
+
+    if (!hotbar_can_assign(_item_id)) {
+        return inventory_action_result(false, "Only consumables and spirit ashes can use quick slots.");
+    }
+
+    var _name = item_definition_get(_item_id).name;
+    var _from = array_get_index(_hotbar.slots, _item_id);
+
+    if (_from == _slot) {
+        return inventory_action_result(false, _name + " is already in quick slot " + string(_slot + 1) + ".");
+    }
+
+    var _displaced = _hotbar.slots[_slot];
+    var _message;
+
+    _hotbar.slots[_slot] = _item_id;
+
+    if (_from != -1) {
+        // Moving within the bar: the previous occupant (if any) takes the vacated slot.
+        _hotbar.slots[_from] = _displaced;
+
+        _message = _displaced == ""
+            ? "Moved " + _name + " to quick slot " + string(_slot + 1) + "."
+            : "Swapped " + _name + " with " + item_definition_get(_displaced).name + ".";
+    }
+    else {
+        _message = _displaced == ""
+            ? "Assigned " + _name + " to quick slot " + string(_slot + 1) + "."
+            : "Quick slot " + string(_slot + 1) + ": " + item_definition_get(_displaced).name + " replaced by " + _name + ".";
+    }
+
+    inventory_event_emit(INV_EVENT_HOTBAR);
+
+    return inventory_action_result(true, _message);
+}
+
+
+/// @function hotbar_assign(_hotbar, _slot, _item_id)
+/// @description Boolean wrapper around hotbar_assign_result().
+/// @returns {Boolean} Whether the hotbar changed.
+function hotbar_assign(_hotbar, _slot, _item_id) {
+    return hotbar_assign_result(_hotbar, _slot, _item_id).ok;
+}
 
 /// @function hotbar_use(_hotbar, _slot)
 /// @description Use the item assigned to a quick slot if it remains in inventory.
@@ -56,9 +94,8 @@ function hotbar_use(_hotbar, _slot) {
         return inventory_action_result(false, "Quick slot is empty.");
     }
 
-    // The item may have been consumed or discarded since assignment.
+    // Out of stock: keep the assignment (shown as x0) so it is ready once restocked.
     if (inventory_count_item(global.player_inventory, item_id) <= 0) {
-        _hotbar.slots[_slot] = "";
         return inventory_action_result(false, "No items remaining.");
     }
 

@@ -300,6 +300,20 @@ if (is_struct(_selected)) {
             "Max stack: " + string(_definition.max_stack)
         );
 
+        // Weapon skill or summon cost, when the item has one
+        var _extra_line = "";
+        if (_definition.category == "weapon") {
+            var _skill = item_skill_get(_definition);
+            if (is_struct(_skill)) _extra_line = "Skill: " + _skill.name + " (" + item_cost_text(_skill.cost) + ")";
+        }
+        else if (_definition.category == "spirit_ash" && variable_struct_exists(_definition, "cost")) {
+            _extra_line = "Summon cost: " + item_cost_text(_definition.cost);
+        }
+        if (_extra_line != "") {
+            draw_set_color(make_color_rgb(130, 177, 220));
+            draw_text(_detail_x, _grid_y + 96, _extra_line);
+        }
+
         // Description
         draw_set_color(c_white);
 
@@ -412,13 +426,13 @@ draw_set_color(c_white);
 draw_text(
     _detail_x,
     _stats_y + 23,
-    "Attack: " + string(global.player.get_attack())
+    "Attack: " + string(global.player.derived.attack)
 );
 
 draw_text(
     _detail_x + 170,
     _stats_y + 23,
-    "Defense: " + string(global.player.get_defense())
+    "Defense: " + string(global.player.derived.defense)
 );
 
 // The helper returns undefined when no item is equipped.
@@ -469,7 +483,7 @@ draw_text(
 draw_text(
     _detail_x,
     _stats_y + 158,
-    "Equip Load: " + string(global.player.get_equip_load()) + " / " + string(global.player.max_equip_load)
+    "Equip Load: " + string(global.player.derived.equip_load) + " / " + string(global.player.max_equip_load)
 );
 
 draw_text(
@@ -487,6 +501,13 @@ for (var _t = 0; _t < global.player.max_talismans; _t++) {
 
     draw_text(_detail_x + 186, _stats_y + 92 + _t * 22, _talisman_name);
 }
+
+var _summon_def = (global.player.summon != "") ? item_definition_get(global.player.summon) : undefined;
+draw_text(
+    _detail_x + 170,
+    _stats_y + 158,
+    "Summon: " + (is_struct(_summon_def) ? _summon_def.name : "None")
+);
 #endregion
 
 #region Action menu

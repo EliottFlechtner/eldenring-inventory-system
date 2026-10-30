@@ -20,6 +20,29 @@ function item_validation_is_whole(_value) {
 }
 
 
+/// @function item_validation_check_cost(_report, _cost, _owner)
+/// @description Check that a cost struct only holds non-negative whole fp, hp, and runes values.
+function item_validation_check_cost(_report, _cost, _owner) {
+    if (!is_struct(_cost)) {
+        item_validation_add(_report, true, _owner + " has a cost that is not a struct.");
+        return;
+    }
+
+    var _names = variable_struct_get_names(_cost);
+
+    for (var i = 0; i < array_length(_names); i++) {
+        var _name = _names[i];
+
+        if (_name != "fp" && _name != "hp" && _name != "runes") {
+            item_validation_add(_report, true, _owner + " has an unknown cost resource '" + _name + "'.");
+        }
+        else if (!item_validation_is_whole(_cost[$ _name]) || _cost[$ _name] < 0) {
+            item_validation_add(_report, true, _owner + " has an invalid " + _name + " cost.");
+        }
+    }
+}
+
+
 /// @function item_validation_check_definition(_report, _def, _index)
 /// @description Check one raw definition's fields and its effect and handler references.
 /// @param {Struct} _report The report to add to.
@@ -78,6 +101,26 @@ function item_validation_check_definition(_report, _def, _index) {
     if ((_category == "armor" || _category == "shield") && !variable_struct_exists(_def, "defense")) {
         item_validation_add(_report, false, "Armor/shield " + _label + " has no defense.");
     }
+
+    #region Costs and skills
+    if (variable_struct_exists(_def, "cost")) {
+        item_validation_check_cost(_report, _def.cost, "Item " + _label);
+    }
+
+    if (variable_struct_exists(_def, "skill")) {
+        var _skills = global[$ "item_skills"];
+
+        if (_category != "weapon") {
+            item_validation_add(_report, false, "Item " + _label + " has a skill but is not a weapon (the skill is ignored).");
+        }
+        else if (!is_string(_def.skill) || _def.skill == "") {
+            item_validation_add(_report, true, "Weapon " + _label + " has an invalid skill.");
+        }
+        else if (is_struct(_skills) && !variable_struct_exists(_skills, _def.skill)) {
+            item_validation_add(_report, false, "Weapon " + _label + " uses unregistered skill '" + _def.skill + "' (no Weapon Skill action).");
+        }
+    }
+    #endregion
 
     #region Effects
     if (_category == "consumable") {
@@ -138,6 +181,22 @@ function item_validation_check_definition(_report, _def, _index) {
 /// @description Check the structure of every registered category handler and consumable effect.
 /// @param {Struct} _report The report to add to.
 function item_validation_check_handlers(_report) {
+    var _skills = global[$ "item_skills"];
+
+    if (is_struct(_skills)) {
+        var _skill_ids = variable_struct_get_names(_skills);
+
+        for (var s = 0; s < array_length(_skill_ids); s++) {
+            var _skill = _skills[$ _skill_ids[s]];
+
+            if (!is_string(_skill[$ "name"]) || _skill.name == "") {
+                item_validation_add(_report, true, "Skill '" + _skill_ids[s] + "' has no name.");
+            }
+
+            item_validation_check_cost(_report, _skill[$ "cost"] ?? {}, "Skill '" + _skill_ids[s] + "'");
+        }
+    }
+
     var _handlers = global[$ "item_category_handlers"];
 
     if (!is_struct(_handlers)) {

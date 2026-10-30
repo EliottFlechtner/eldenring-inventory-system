@@ -34,18 +34,18 @@ function item_database_create() {
         { id: "bolt", name: "Bolt", category: "ammo", description: "Standard crossbow bolt.", stackable: true, max_stack: 99, icon: -1, attack: 25 },
         
         // Weapons
-        { id: "uchigatana", name: "Uchigatana", category: "weapon", description: "Katana causing blood loss.", stackable: false, max_stack: 1, icon: -1, attack: 115, weight: 5.5 },
-        { id: "claymore", name: "Claymore", category: "weapon", description: "Greatsword with a good moveset.", stackable: false, max_stack: 1, icon: -1, attack: 130, weight: 9 },
-        { id: "longsword", name: "Longsword", category: "weapon", description: "Straight sword.", stackable: false, max_stack: 1, icon: -1, attack: 110, weight: 7 },
-        { id: "rogiers_rapier", name: "Rogier's Rapier", category: "weapon", description: "Thrusting sword.", stackable: false, max_stack: 1, icon: -1, attack: 100, weight: 2.5 },
-        { id: "moonveil", name: "Moonveil", category: "weapon", description: "Katana of magic.", stackable: false, max_stack: 1, icon: -1, attack: 130, weight: 5.5 },
-        { id: "rivers_of_blood", name: "Rivers of Blood", category: "weapon", description: "Katana of crimson blades.", stackable: false, max_stack: 1, icon: -1, attack: 120, weight: 5.5 },
-        { id: "sword_of_night_and_flame", name: "Sword of Night and Flame", category: "weapon", description: "Legendary dual-spell sword.", stackable: false, max_stack: 1, icon: -1, attack: 125, weight: 5 },
-        { id: "grafted_blade_greatsword", name: "Grafted Blade Greatsword", category: "weapon", description: "Colossal sword.", stackable: false, max_stack: 1, icon: -1, attack: 200, weight: 20 },
+        { id: "uchigatana", name: "Uchigatana", category: "weapon", description: "Katana causing blood loss.", stackable: false, max_stack: 1, icon: -1, attack: 115, weight: 5.5, skill: "unsheathe" },
+        { id: "claymore", name: "Claymore", category: "weapon", description: "Greatsword with a good moveset.", stackable: false, max_stack: 1, icon: -1, attack: 130, weight: 9, skill: "lion_claw" },
+        { id: "longsword", name: "Longsword", category: "weapon", description: "Straight sword.", stackable: false, max_stack: 1, icon: -1, attack: 110, weight: 7, skill: "square_off" },
+        { id: "rogiers_rapier", name: "Rogier's Rapier", category: "weapon", description: "Thrusting sword.", stackable: false, max_stack: 1, icon: -1, attack: 100, weight: 2.5, skill: "carian_grandeur" },
+        { id: "moonveil", name: "Moonveil", category: "weapon", description: "Katana of magic.", stackable: false, max_stack: 1, icon: -1, attack: 130, weight: 5.5, skill: "transient_moonlight" },
+        { id: "rivers_of_blood", name: "Rivers of Blood", category: "weapon", description: "Katana of crimson blades.", stackable: false, max_stack: 1, icon: -1, attack: 120, weight: 5.5, skill: "corpse_piler" },
+        { id: "sword_of_night_and_flame", name: "Sword of Night and Flame", category: "weapon", description: "Legendary dual-spell sword.", stackable: false, max_stack: 1, icon: -1, attack: 125, weight: 5, skill: "night_and_flame_stance" },
+        { id: "grafted_blade_greatsword", name: "Grafted Blade Greatsword", category: "weapon", description: "Colossal sword.", stackable: false, max_stack: 1, icon: -1, attack: 200, weight: 20, skill: "oath_of_vengeance" },
         { id: "giants_red_braid_mace", name: "Giant's Red Braid", category: "weapon", description: "Mace-like weapon.", stackable: false, max_stack: 1, icon: -1, attack: 140, weight: 14 },
-        { id: "morning_star", name: "Morning Star", category: "weapon", description: "Spiked flail-like club.", stackable: false, max_stack: 1, icon: -1, attack: 105, weight: 6.5 },
-        { id: "short_bow", name: "Short Bow", category: "weapon", description: "Quick, light bow.", stackable: false, max_stack: 1, icon: -1, attack: 60, weight: 1.5 },
-        { id: "longbow", name: "Longbow", category: "weapon", description: "Bow with long range.", stackable: false, max_stack: 1, icon: -1, attack: 70, weight: 3 },
+        { id: "morning_star", name: "Morning Star", category: "weapon", description: "Spiked flail-like club.", stackable: false, max_stack: 1, icon: -1, attack: 105, weight: 6.5, skill: "flaming_strike" },
+        { id: "short_bow", name: "Short Bow", category: "weapon", description: "Quick, light bow.", stackable: false, max_stack: 1, icon: -1, attack: 60, weight: 1.5, skill: "mighty_shot" },
+        { id: "longbow", name: "Longbow", category: "weapon", description: "Bow with long range.", stackable: false, max_stack: 1, icon: -1, attack: 70, weight: 3, skill: "rain_of_arrows" },
         { id: "astrologers_staff", name: "Astrologer's Staff", category: "weapon", description: "Sorcery catalyst.", stackable: false, max_stack: 1, icon: -1, attack: 40, weight: 2.5 },
         { id: "glintstone_staff", name: "Glintstone Staff", category: "weapon", description: "Boosts glintstone sorceries.", stackable: false, max_stack: 1, icon: -1, attack: 45, weight: 2.5 },
         { id: "finger_seal", name: "Finger Seal", category: "weapon", description: "Incantation catalyst.", stackable: false, max_stack: 1, icon: -1, attack: 30, weight: 0.5 },
@@ -76,8 +76,8 @@ function item_database_create() {
         { id: "spectral_steed_whistle", name: "Spectral Steed Whistle", category: "key", description: "Summons Torrent.", stackable: false, max_stack: 1, icon: -1 },
         
         // Spirit Ashes
-        { id: "lone_wolf_ashes", name: "Lone Wolf Ashes", category: "spirit_ash", description: "Summons spectral wolves.", stackable: false, max_stack: 1, icon: -1 },
-        { id: "mimic_tear_ashes", name: "Mimic Tear Ashes", category: "spirit_ash", description: "Summons a copy of yourself.", stackable: false, max_stack: 1, icon: -1 },
+        { id: "lone_wolf_ashes", name: "Lone Wolf Ashes", category: "spirit_ash", description: "Summons spectral wolves.", stackable: false, max_stack: 1, icon: -1, cost: { fp: 20 } },
+        { id: "mimic_tear_ashes", name: "Mimic Tear Ashes", category: "spirit_ash", description: "Summons a copy of yourself.", stackable: false, max_stack: 1, icon: -1, cost: { fp: 35, hp: 20 } },
     ];
     #endregion
 }

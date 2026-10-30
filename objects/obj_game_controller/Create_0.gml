@@ -6,6 +6,9 @@ game_set_speed(60, gamespeed_fps);
 // Also creates global.inventory_templates.
 item_database_init();
 
+// Event bus so inventory, equipment, and stat changes keep derived state and the UI in sync.
+inventory_events_init();
+
 // Register per-category item handlers and consumable effects.
 item_handlers_init();
 
@@ -37,8 +40,8 @@ inventory_fill_from_config(global.player_inventory, { template: "debug", clear: 
 item_validation_run();
 
 // Uncomment to restore the last save (F5 saves, F9 loads in the inventory).
-save_read();
+//save_read();
 
 // Set to true to log the inventory self-tests at startup.
-if (false) inventory_run_tests();
+if (true) inventory_run_tests();
 show_debug_message("Player inventory initialized.");
