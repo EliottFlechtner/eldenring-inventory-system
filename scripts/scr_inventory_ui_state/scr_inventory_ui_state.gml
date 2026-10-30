@@ -67,6 +67,14 @@ function inventory_ui_reset(_ui) {
 }
 
 
+/// @function inventory_ui_hotbar_use(_ui, _slot)
+/// @description Use a quick slot and show the result as feedback.
+function inventory_ui_hotbar_use(_ui, _slot) {
+    var _result = hotbar_use(global.player_hotbar, _slot);
+    inventory_ui_message_show(_ui, _result.message, _ui.ui_message_duration_brief);
+}
+
+
 #region Event-driven refresh
 /// @function inventory_ui_refresh(_ui)
 /// @description Bring open menus and dialogs back in line with the game state after inventory, equipment,

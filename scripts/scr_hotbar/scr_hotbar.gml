@@ -99,7 +99,10 @@ function hotbar_use(_hotbar, _slot) {
         return inventory_action_result(false, "No items remaining.");
     }
 
-    return inventory_execute_action(item_id, "Use");
+    // A summoned spirit ash no longer offers Use, so its quick slot dismisses it instead.
+    var _action = (global.player.summon == item_id) ? "Dismiss" : "Use";
+
+    return inventory_execute_action(item_id, _action);
 }
 
 

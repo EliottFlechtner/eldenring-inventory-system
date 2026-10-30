@@ -684,6 +684,16 @@ function inventory_test_spirit_ash() {
 
     inventory_remove(_inv, "mimic_tear_ashes", 1);
     inventory_test_assert(_p.summon == "", "Losing the ash ends the summon");
+
+    // Quick slots toggle a spirit: first press summons, second dismisses (Use is not offered while summoned).
+    inventory_add(_inv, "lone_wolf_ashes", 1);
+    _p.fp = 50;
+    hotbar_assign(global.player_hotbar, 0, "lone_wolf_ashes");
+    _r = hotbar_use(global.player_hotbar, 0);
+    inventory_test_assert(_r.ok && _p.summon == "lone_wolf_ashes", "Quick slot summons the spirit");
+    _r = hotbar_use(global.player_hotbar, 0);
+    inventory_test_assert(_r.ok && _p.summon == "", "Quick slot dismisses a summoned spirit");
+    inventory_test_assert(_p.fp == 30, "Dismissing is free");
 }
 #endregion
 

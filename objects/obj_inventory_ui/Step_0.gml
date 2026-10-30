@@ -21,13 +21,15 @@ if (inventory_open && keyboard_check_pressed(vk_escape)) {
 #endregion
 
 #region Closed-inventory hotbar input
+// Hotbar results (summoned, out of stock, ...) are shown as feedback too.
+
 // Don't process other inputs when the inventory is closed.
 if (!inventory_open) {
     // Number keys use a quick slot directly while the inventory is closed.
-    if (keyboard_check_pressed(ord("1"))) hotbar_use(global.player_hotbar, 0);
-    if (keyboard_check_pressed(ord("2"))) hotbar_use(global.player_hotbar, 1);
-    if (keyboard_check_pressed(ord("3"))) hotbar_use(global.player_hotbar, 2);
-    if (keyboard_check_pressed(ord("4"))) hotbar_use(global.player_hotbar, 3);
+    if (keyboard_check_pressed(ord("1"))) inventory_ui_hotbar_use(id, 0);
+    if (keyboard_check_pressed(ord("2"))) inventory_ui_hotbar_use(id, 1);
+    if (keyboard_check_pressed(ord("3"))) inventory_ui_hotbar_use(id, 2);
+    if (keyboard_check_pressed(ord("4"))) inventory_ui_hotbar_use(id, 3);
 
     // 'A' cycles the selected quick slot.
     if (keyboard_check_pressed(ord("A"))) hotbar_cycle(global.player_hotbar, 1);

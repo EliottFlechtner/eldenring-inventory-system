@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_save_load",
   "parent":{
-    "name":"Inventory System",
-    "path":"folders/Inventory System.yy",
+    "name":"Player",
+    "path":"folders/Player.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -54,6 +54,12 @@ if (!inventory_open) {
                 draw_set_halign(fa_left);
                 draw_set_valign(fa_top);
 
+                // Green dot: this spirit ash is currently summoned.
+                if (global.player.summon == _item_id) {
+                    draw_set_color(make_color_rgb(110, 210, 130));
+                    draw_circle(_sx + ui_slot_size - 8, _sy + 8, 4, false);
+                }
+
                 // Full name of the selected quick slot, above the bar.
                 if (i == hb.selected_slot) {
                     draw_set_color(make_color_rgb(239, 203, 119));
@@ -66,6 +72,16 @@ if (!inventory_open) {
             }
         }
     }
+    // Short feedback line above the selected slot name.
+    if (ui_message_timer > 0 && ui_message != "") {
+        draw_set_halign(fa_center);
+        draw_set_valign(fa_bottom);
+        draw_set_color(c_white);
+        draw_text(display_get_gui_width() * 0.5, _slot_y - 28, ui_message);
+        draw_set_halign(fa_left);
+        draw_set_valign(fa_top);
+    }
+
     draw_set_alpha(1);
     draw_set_color(c_white);
     exit;

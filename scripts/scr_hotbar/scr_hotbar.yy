@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"scr_hotbar",
   "parent":{
-    "name":"Hotbar System",
-    "path":"folders/Hotbar System.yy",
+    "name":"Quickslots",
+    "path":"folders/Inventory System/Quickslots.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",
